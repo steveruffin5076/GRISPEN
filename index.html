@@ -237,6 +237,15 @@ var COL = {
   flesh:0x6a7060, skin:0xd0b890, zombieSkin:0xcfc9b8, acid:0x6a9a2a
 };
 
+/* ---------------- Bodden dialogue (GDD §2 — the old man who rescued Neil) ---------------- */
+var BODDEN_LINES = [
+  'Bodden: "Name\'s Bodden. Found you half-dead in the dirt — figured you were worth the trouble."',
+  'Bodden: "Rest up. The woods don\'t forgive tired legs."',
+  'Bodden: "Chop what you need, but leave some for tomorrow."',
+  'Bodden: "Whatever came out of that lab, it\'s still out there. Watch the tree line."',
+  'Bodden: "Every day the infected get faster. Don\'t get comfortable."'
+];
+
 /* ================================================================
    SFX — synthesized WebAudio (no audio files needed)
    ================================================================ */
@@ -379,6 +388,7 @@ GameScene.prototype.create = function(){
 
     this.enemies=[]; this.arrows=[]; this.acids=[]; this.resources=[]; this.crates=[];
     this.sx = BAL.shelter.x; this.sy = BAL.shelter.y; this.sr = BAL.shelter.r;
+    this.wasInShelter = false; this.metBodden = false; this.boddenLine = 1;
 
     /* ---- world ---- */
     this.drawGround();
@@ -386,6 +396,7 @@ GameScene.prototype.create = function(){
     this.rocks = this.physics.add.staticGroup();
     this.spawnObstacles();
     this.drawShelter();
+    this.drawBodden();
     this.spawnResources();
     this.spawnCrates();
 
@@ -519,6 +530,33 @@ GameScene.prototype.drawShelter = function(){
     g.fillStyle(COL.paperDark, 0.5); g.fillRect(x-13, y+50, 26, 5);
     // label
     this.add.text(x, y-66, 'SHELTER', {font:'11px Courier', color:'#5a5346'}).setOrigin(.5).setDepth(9);
+  },
+
+GameScene.prototype.drawBodden = function(){
+    var x = this.sx - 32, y = this.sy + 42;
+    this.bx = x; this.by = y;
+    var g = this.add.graphics().setDepth(9);
+    // shadow
+    g.fillStyle(COL.ink, 0.15); wobEllipse(g, x, y+8, 10, 4.5, 0.8, 3); g.fillPath();
+    // legs
+    g.fillStyle(COL.faded, 1); g.fillRect(x-6, y+4, 3, 7); g.fillRect(x+3, y+4, 3, 7);
+    // cane
+    g.lineStyle(1.4, COL.woodDark, 1); g.lineBetween(x+9, y-2, x+11, y+14);
+    // hunched robe body
+    g.fillStyle(0x4a4640, 1); wobCircleFill(g, x, y-3, 9.5, 3);
+    g.lineStyle(1.4, COL.ink, 1); wobPath(g, x, y-3, 9.5, 0.9, 3); g.strokePath();
+    // arms
+    g.fillStyle(0x4a4640, 1); g.fillCircle(x-9, y-6, 2.6); g.fillCircle(x+8, y-4, 2.6);
+    g.lineStyle(1, COL.ink, 0.9); g.strokeCircle(x-9, y-6, 2.6); g.strokeCircle(x+8, y-4, 2.6);
+    // head
+    g.fillStyle(COL.skin, 1); g.fillCircle(x, y-13, 5);
+    g.lineStyle(1.1, COL.ink, 1); g.strokeCircle(x, y-13, 5);
+    // grey hair + beard
+    g.fillStyle(0xb8b2a2, 1);
+    g.beginPath(); g.moveTo(x, y-13); g.arc(x, y-13, 5.4, Phaser.Math.DegToRad(150), Phaser.Math.DegToRad(30)); g.closePath(); g.fillPath();
+    g.fillStyle(0xb8b2a2, 0.9); wobEllipse(g, x, y-9, 3.2, 2.4, 0.6, 4); g.fillPath();
+    // label
+    this.add.text(x, y-26, 'BODDEN', {font:'9px Courier', color:'#5a5346'}).setOrigin(.5).setDepth(9);
   },
 
 GameScene.prototype.spawnObstacles = function(){
@@ -1575,6 +1613,13 @@ GameScene.prototype._update = function(dt){
     /* ---- shelter / interact targets ---- */
     var inS = this.inShelter();
     if (inS) s.hp = Math.min(s.hpMax, s.hp + BAL.shelter.healDps*dt);
+    if (inS && !this.wasInShelter){
+      this.msg(BODDEN_LINES[this.metBodden ? this.boddenLine : 0]);
+      if (this.metBodden) this.boddenLine = 1 + (this.boddenLine % (BODDEN_LINES.length-1));
+      else this.metBodden = true;
+      SFX.ui();
+    }
+    this.wasInShelter = inS;
 
     /* ---- hotkeys ---- */
     if (Phaser.Input.Keyboard.JustDown(this.keys.E)) this.interact();
