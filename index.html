@@ -2,783 +2,1846 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no" />
-<title>GRISPEN — Top-Down Survival</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<title>GRISPEN — Top-Down Zombie Survival</title>
 <style>
-  html,body{margin:0;padding:0;background:#111;color:#eee;font-family:'Courier New',monospace;overflow:hidden;height:100%;width:100%}
-  #game-container{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
-  #start-screen{position:absolute;inset:0;background:rgba(10,10,10,.97);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;text-align:center;padding:20px;box-sizing:border-box}
-  #start-screen h1{font-size:42px;color:#c43a2a;letter-spacing:6px;text-shadow:2px 2px 0 #000;margin:0 0 8px}
-  #start-screen .sub{font-size:16px;color:#888;margin-bottom:24px;font-style:italic}
-  #start-screen .box{max-width:480px;background:rgba(255,255,255,.04);border:1px solid #444;padding:18px;font-size:13px;line-height:1.8;margin-bottom:20px;text-align:left}
-  #start-screen .box b{color:#ddd}
-  #start-screen .box k{color:#c43a2a;font-weight:bold}
-  #start-btn,#restart-btn{padding:12px 30px;background:#c43a2a;color:#fff;border:2px solid #fff;font-family:inherit;font-size:16px;cursor:pointer;letter-spacing:3px}
-  #start-btn:hover,#restart-btn:hover{background:#e04b3a}
-  #hud{position:absolute;top:10px;left:10px;z-index:50;pointer-events:none;background:rgba(0,0,0,.7);padding:10px 14px;border:1px solid #555;min-width:200px;font-size:13px}
-  .bar{height:10px;background:#222;border:1px solid #555;margin:2px 0 6px}
-  .bar>div{height:100%;transition:width .2s}
-  .lbl{font-size:10px;color:#aaa}
-  #weapon{position:absolute;bottom:10px;left:10px;z-index:50;pointer-events:none;background:rgba(0,0,0,.7);padding:8px 12px;border:1px solid #555;font-size:12px}
-  #inv{position:absolute;bottom:10px;right:10px;z-index:50;pointer-events:none;background:rgba(0,0,0,.7);padding:8px 12px;border:1px solid #555;font-size:12px;min-width:140px}
-  #mm{position:absolute;top:10px;right:10px;width:130px;height:130px;background:#1a1a1a;border:1px solid #555;z-index:50}
-  #msg{position:absolute;top:36%;left:50%;transform:translate(-50%,-50%);z-index:50;background:rgba(0,0,0,.88);padding:10px 20px;border:1px solid #c43a2a;font-size:14px;opacity:0;transition:opacity .3s;white-space:nowrap;pointer-events:none}
-  #hint{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);z-index:50;background:rgba(0,0,0,.6);padding:6px 14px;border:1px dashed #777;font-size:12px;color:#bbb;max-width:90%;text-align:center}
-  #go{position:absolute;inset:0;background:rgba(20,0,0,.92);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:200;text-align:center}
-  #go h1{color:#c43a2a;font-size:48px;letter-spacing:6px;margin:0 0 10px}
-  #go p{color:#aaa;font-size:15px;margin:6px 0}
-  #err{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#300;color:#fff;padding:20px;border:2px solid #f00;z-index:999;font-size:14px;white-space:pre-wrap;display:none;max-width:80%}
+  :root{
+    --paper:#e8e2d4; --ink:#1a1a1a; --blood:#c43a2a; --amber:#d4a030;
+    --herb:#4a6a3a; --panel:rgba(18,16,13,.84); --line:#6a5f4d;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;height:100%;width:100%;overflow:hidden;background:#12100d;
+    font-family:'Courier New',Courier,monospace;color:#e8e2d4;touch-action:none}
+  #game-container{position:absolute;inset:0}
+
+  /* ---------- overlays ---------- */
+  .overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;z-index:200;text-align:center;padding:20px;
+    background:radial-gradient(ellipse at center,#1b1712 0%,#0e0c09 78%)}
+  .overlay h1{font-size:52px;color:var(--blood);letter-spacing:10px;margin:0 0 4px;
+    text-shadow:3px 3px 0 #000, -1px -1px 0 #3a0d08;transform:rotate(-1deg)}
+  .overlay .sub{font-size:14px;color:#8a8272;margin-bottom:22px;font-style:italic}
+  .panelbox{max-width:520px;width:92%;background:rgba(232,226,212,.05);border:1px solid var(--line);
+    box-shadow:3px 3px 0 rgba(0,0,0,.5);padding:16px 18px;font-size:12.5px;line-height:1.75;
+    margin-bottom:18px;text-align:left;color:#bdb5a2}
+  .panelbox b{color:#e8e2d4}
+  .panelbox .k{color:var(--blood);font-weight:bold}
+  .panelbox .g{color:var(--herb);font-weight:bold}
+  .panelbox h3{margin:10px 0 2px;font-size:12px;color:#8a8272;letter-spacing:2px}
+  .btn{padding:13px 34px;background:var(--blood);color:#f5efe0;border:2px solid #e8e2d4;
+    font-family:inherit;font-size:15px;font-weight:bold;cursor:pointer;letter-spacing:3px;
+    box-shadow:3px 3px 0 #000;transition:transform .08s,background .12s}
+  .btn:hover{background:#dd4d3b;transform:translate(-1px,-1px)}
+  .btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #000}
+  .btn.ghost{background:#2a251d;color:#bdb5a2;border-color:var(--line)}
+  .btn.ghost:hover{background:#3a332a}
+  .btnrow{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+  #hi-line{margin-top:14px;font-size:12px;color:#8a8272;letter-spacing:1px}
+  #hi-line b{color:var(--amber)}
+  #save-line{margin-top:8px;font-size:12px;color:var(--herb);letter-spacing:1px}
+  #go{display:none}
+  #go h1{font-size:60px}
+  #go .stats{font-size:15px;color:#bdb5a2;margin:8px 0 20px;line-height:2}
+  #go .stats b{color:#e8e2d4}
+  #pauseov{display:none}
+
+  /* ---------- HUD ---------- */
+  #hud{position:absolute;top:10px;left:10px;z-index:50;pointer-events:none;background:var(--panel);
+    padding:10px 14px;border:1px solid var(--line);box-shadow:3px 3px 0 rgba(0,0,0,.45);
+    min-width:205px;font-size:12px;transform:rotate(-.4deg)}
+  .bar{height:10px;background:#17140f;border:1px solid var(--line);margin:2px 0 7px}
+  .bar>div{height:100%;transition:width .15s linear}
+  .lbl{font-size:9.5px;color:#8a8272;letter-spacing:2px}
+  #hud .row{font-size:11px;color:#8a8272;margin-top:2px}
+  #hud .row b{color:#e8e2d4}
+  #mm{position:absolute;top:10px;right:10px;width:130px;height:130px;background:#d6d0be;
+    border:1px solid var(--line);box-shadow:3px 3px 0 rgba(0,0,0,.45);z-index:50;pointer-events:none}
+  #weapon{position:absolute;bottom:10px;left:10px;z-index:50;pointer-events:none;background:var(--panel);
+    padding:8px 12px;border:1px solid var(--line);box-shadow:3px 3px 0 rgba(0,0,0,.45);font-size:12px}
+  #weapon .k{color:var(--blood)}
+  #inv{position:absolute;bottom:10px;right:10px;z-index:50;pointer-events:none;background:var(--panel);
+    padding:8px 12px;border:1px solid var(--line);box-shadow:3px 3px 0 rgba(0,0,0,.45);font-size:12px;min-width:128px}
+  #inv .dim{color:#8a8272}
+  #msg{position:absolute;top:34%;left:50%;transform:translate(-50%,-50%) rotate(-.5deg);z-index:60;
+    background:rgba(14,12,9,.9);padding:10px 22px;border:1px solid var(--blood);font-size:14px;
+    letter-spacing:1px;opacity:0;transition:opacity .3s;white-space:nowrap;pointer-events:none;max-width:94%}
+  #hint{position:absolute;bottom:58px;left:50%;transform:translateX(-50%);z-index:50;
+    background:rgba(14,12,9,.65);padding:6px 16px;border:1px dashed var(--line);font-size:11.5px;
+    color:#bdb5a2;max-width:92%;text-align:center}
+
+  /* ---------- mobile ---------- */
+  #mobile{display:none;position:absolute;inset:0;z-index:80;pointer-events:none}
+  #stick-zone{position:absolute;left:0;top:0;bottom:0;width:46%;pointer-events:auto}
+  #stick-base{position:absolute;width:116px;height:116px;border:2px solid rgba(232,226,212,.75);
+    border-radius:50%;background:rgba(20,18,14,.35);display:none;pointer-events:none;
+    box-shadow:inset 0 0 18px rgba(0,0,0,.5)}
+  #stick-knob{position:absolute;width:52px;height:52px;border:2px solid #e8e2d4;border-radius:50%;
+    background:rgba(196,58,42,.55);display:none;pointer-events:none}
+  .mbtn{position:absolute;border-radius:50%;border:2px solid rgba(232,226,212,.8);
+    background:rgba(24,21,16,.66);color:#e8e2d4;font-family:inherit;font-weight:bold;
+    display:flex;align-items:center;justify-content:center;user-select:none;pointer-events:auto;
+    touch-action:none;box-shadow:2px 2px 0 rgba(0,0,0,.5)}
+  .mbtn:active{background:rgba(196,58,42,.55)}
+  #mb-attack{right:22px;bottom:26px;width:98px;height:98px;font-size:13px;letter-spacing:1px;
+    background:rgba(196,58,42,.4)}
+  #mb-e{right:140px;bottom:52px;width:60px;height:60px;font-size:16px}
+  #mb-1{right:22px;bottom:146px;width:52px;height:52px;font-size:15px}
+  #mb-2{right:86px;bottom:160px;width:52px;height:52px;font-size:15px}
+  #mb-r{right:150px;bottom:172px;width:52px;height:52px;font-size:15px}
+  #mb-pause{top:152px;right:34px;width:42px;height:42px;font-size:14px;z-index:90}
+  .mhint{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);font-size:10px;color:#6f6756;
+    letter-spacing:1px;pointer-events:none}
+
+  /* ---------- error ---------- */
+  #err{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#300;color:#fff;
+    padding:20px;border:2px solid #f00;z-index:999;font-size:13px;white-space:pre-wrap;display:none;
+    max-width:82%;text-align:left}
 </style>
 </head>
 <body>
 <div id="game-container"></div>
-<div id="start-screen">
+
+<!-- ================= START ================= -->
+<div id="start-screen" class="overlay">
   <h1>GRISPEN</h1>
   <div class="sub">— the world went gray. the ink ran red. —</div>
-  <div class="box">
-    <b>CONTROLS</b><br/>
-    <k>WASD/Arrows</k> Move · <k>Shift</k> Sprint<br/>
-    <k>Mouse</k> Aim · <k>Left-click</k> hold to charge, release to attack<br/>
-    <k>E</k> Loot/Interact · <k>1/2</k> Knife/Bow · <k>R</k> Craft arrows<br/><br/>
-    <b>SURVIVE</b> — Chop stumps (brown) for wood, pick bushes (green) for herbs,
-    open crates for loot, hunt small animals for meat, kill zombies before they bite you.
-    The house at center is your shelter — step inside to heal.
+  <div class="panelbox">
+    <b>THE SITUATION</b><br/>
+    The Ares Virus turned the world into a gray sketchbook. You are <b>Neil</b>, S.O.T. operative,
+    left for dead after a traitor wrecked the mission. Re-arm. Gather. Craft. Survive each day —
+    the infected grow faster, harder, and more numerous. The hut at the center of the woods is your shelter.<br/><br/>
+    <h3>DESKTOP CONTROLS</h3>
+    <span class="k">WASD / Arrows</span> move · <span class="k">Shift</span> sprint ·
+    <span class="k">Mouse</span> aim<br/>
+    <span class="k">Left-click</span> hold to charge, release to swing/shoot<br/>
+    <span class="k">E</span> loot crate / rest at shelter · <span class="k">1</span>/<span class="k">2</span> knife/bow ·
+    <span class="k">R</span> craft arrows · <span class="k">P</span> pause · <span class="k">M</span> sound
+    <h3 id="touch-ctrl" style="display:none">TOUCH CONTROLS</h3>
+    <span class="k">Left side</span> joystick to move (pull far = sprint) ·
+    <span class="k">ATTACK</span> hold to charge, release to fire (auto-aims)<br/>
+    <span class="k">E</span> interact · <span class="k">1</span>/<span class="k">2</span> weapons · <span class="k">R</span> craft arrows
+    <h3>SURVIVAL</h3>
+    Chop <span class="g">stumps</span> for wood · pick <span class="g">herb bushes</span> · open crates ·
+    hunt critters for meat. Zombies drop <span class="k">Z-Coins</span> and rotten meat.
+    <b>Beware:</b> <span class="k">spiders</span> poison you, <span class="k">vomiters</span> throw acid,
+    <span class="k">exploders</span> blow up. Cook meat &amp; make medicine at the shelter.
   </div>
-  <button id="start-btn">BEGIN SURVIVAL</button>
+  <div class="btnrow">
+    <button id="start-btn" class="btn">BEGIN SURVIVAL</button>
+    <button id="cont-btn" class="btn ghost" style="display:none">CONTINUE</button>
+  </div>
+  <div id="save-line"></div>
+  <div id="hi-line"></div>
 </div>
+
+<!-- ================= HUD ================= -->
 <div id="hud" style="display:none">
   <div class="lbl">HEALTH</div><div class="bar"><div id="b-hp" style="width:100%;background:#c43a2a"></div></div>
   <div class="lbl">HUNGER</div><div class="bar"><div id="b-hu" style="width:100%;background:#d4a030"></div></div>
   <div class="lbl">STAMINA</div><div class="bar"><div id="b-st" style="width:100%;background:#4a8cc4"></div></div>
-  <div style="font-size:11px;color:#aaa">Day <span id="d-day">1</span> · Kills <span id="d-kill">0</span></div>
+  <div class="row">Day <b id="d-day">1</b> · Kills <b id="d-kill">0</b> · <span id="d-state">day</span></div>
 </div>
 <canvas id="mm" width="130" height="130" style="display:none"></canvas>
-<div id="weapon" style="display:none">Weapon: <span id="w-name">Knife</span><br/>Ammo: <span id="w-ammo">∞</span></div>
-<div id="inv" style="display:none">Wood: <span id="i-w">0</span><br/>Herbs: <span id="i-h">0</span><br/>Arrows: <span id="i-a">5</span><br/>Meat: <span id="i-m">0</span><br/><span style="color:#aaa">Z-Coins: <span id="i-z">0</span></span></div>
+<div id="weapon" style="display:none">Weapon: <span class="k" id="w-name">Knife</span><br/>Ammo: <span id="w-ammo">∞</span></div>
+<div id="inv" style="display:none">Wood: <b id="i-w">0</b><br/>Herbs: <b id="i-h">0</b><br/>Arrows: <b id="i-a">5</b><br/>Meat: <b id="i-m">0</b><br/><span class="dim">Z-Coins: <span id="i-z">0</span></span></div>
 <div id="msg"></div>
-<div id="hint" style="display:none">WASD to move · Hold left-click to charge attack · Chop wood stumps · Pick green herb bushes · Open crates with E</div>
-<div id="go">
-  <h1>YOU DIED</h1>
-  <p>The infected claimed another soul...</p>
-  <p>Survived <span id="g-days">1</span> day(s) · Kills: <span id="g-kills">0</span></p>
-  <button id="restart-btn">TRY AGAIN</button>
+<div id="hint" style="display:none"></div>
+
+<!-- ================= MOBILE ================= -->
+<div id="mobile">
+  <div id="stick-zone"></div>
+  <div id="stick-base"></div>
+  <div id="stick-knob"></div>
+  <button class="mbtn" id="mb-attack">HOLD<br/>TO CHARGE</button>
+  <button class="mbtn" id="mb-e">E</button>
+  <button class="mbtn" id="mb-1">1</button>
+  <button class="mbtn" id="mb-2">2</button>
+  <button class="mbtn" id="mb-r">R</button>
+  <button class="mbtn" id="mb-pause">II</button>
+  <div class="mhint">joystick: left side · auto-aims at nearby enemies</div>
 </div>
+
+<!-- ================= GAME OVER ================= -->
+<div id="go" class="overlay">
+  <h1>YOU DIED</h1>
+  <div class="sub">The infected claimed another soul...</div>
+  <div class="stats">Survived <b id="g-days">1</b> day(s) · <b id="g-kills">0</b> kills<br/>
+  <span id="g-best" style="font-size:12px;color:#8a8272"></span></div>
+  <div class="btnrow">
+    <button id="restart-btn" class="btn">TRY AGAIN</button>
+    <button id="quit-btn" class="btn ghost">TITLE</button>
+  </div>
+</div>
+
+<!-- ================= PAUSE ================= -->
+<div id="pauseov" class="overlay">
+  <h1 style="font-size:40px;letter-spacing:8px">PAUSED</h1>
+  <div class="sub">the world holds its breath</div>
+  <div class="btnrow">
+    <button id="resume-btn" class="btn">RESUME</button>
+    <button id="p-restart" class="btn ghost">RESTART</button>
+    <button id="p-quit" class="btn ghost">TITLE</button>
+  </div>
+</div>
+
 <div id="err"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+<script src="vendor/phaser.min.js"></script>
 <script>
-/* ===========================================================
-   GRISPEN — carefully-debugged single-file prototype
-   =========================================================== */
+/* ================================================================
+   GRISPEN — top-down pen-sketch zombie survival (full rebuild)
+   Single file · Phaser 3.70 (local) · no external assets.
+   All sprites drawn procedurally in ballpoint-pen style.
+   ================================================================ */
 (function(){
-  'use strict';
+'use strict';
 
-  // Global error catcher so we can see the problem instead of blank screen
-  window.addEventListener('error', function(e){
-    const el = document.getElementById('err');
-    el.style.display = 'block';
-    el.textContent = 'ERROR: ' + e.message + '\n@ ' + e.filename + ':' + e.lineno;
-    console.error(e);
-  });
+/* ---------------- global error catcher (GDD §7) ---------------- */
+window.addEventListener('error', function(e){
+  var el = document.getElementById('err');
+  el.style.display = 'block';
+  el.textContent = 'ERROR: ' + e.message + '\n@ ' + e.filename + ':' + e.lineno;
+  console.error(e);
+});
 
-  const W = 2000, H = 2000; // world size
-  let game = null;
+/* ---------------- constants & balance ---------------- */
+var W = 2000, H = 2000;
+var SAVE_KEY = 'grispen.save.v1', HI_KEY = 'grispen.hi.v1';
+var IS_TOUCH = ('ontouchstart' in window) || (window.matchMedia && matchMedia('(pointer:coarse)').matches);
 
-  // ---------- Scene ----------
-  class Scene extends Phaser.Scene {
-    constructor(){ super('S'); }
+var BAL = {
+  world:{ w:W, h:H },
+  player:{ walk:180, sprint:300, radius:12,
+    staminaDrain:30, staminaIdle:24, staminaWalk:12,
+    hungerDecay:1.25, starveDps:3, regenFed:0.35, regenShelter:4 },
+  knife:{ dmgMin:15, dmgMax:40, rangeMin:55, rangeMax:70, arcMin:0.85, arcGrow:0.5, cd:0.25 },
+  bow:{ dmgMin:25, dmgMax:60, spdMin:430, spdMax:610, arrowLife:0.55, cd:0.45 },
+  chargeMax:1.2,
+  zombie:{ hp:28, hpPerDay:9, spd:38, spdRnd:12, spdPerDay:4, bite:5, bitePerDay:2, biteCd:1.0, range:26, aggro:500 },
+  spider:{ hp:14, hpPerDay:4, spd:62, spdRnd:10, spdPerDay:4, bite:3, biteCd:0.8, range:22, aggro:400, poisonT:4, poisonDps:3, maxN:6 },
+  vomiter:{ hp:36, hpPerDay:6, spd:30, spitCd:2.6, minR:130, maxR:310, acidSpd:190, acidDmg:8, acidLife:1.6, maxN:4 },
+  exploder:{ hp:22, hpPerDay:4, spd:46, spdRnd:8, primeR:38, primeT:0.8, boomR:75, boomDmg:25, boomDmgMin:12, maxN:3 },
+  animal:{ hp:16, wander:25, flee:110, fleeR:100, meat:2, maxN:8, respawnMs:10000 },
+  resource:{ stumps:20, bushes:22, stumpUses:3, bushUses:2, respawnMs:25000 },
+  crate:{ n:8, lootR:35, respawnMs:45000 },
+  day:{ seconds:60, baseZombies:7, perDay:2, spawnStart:5, spawnMin:2, spawnRamp:0.3 },
+  shelter:{ x:1000, y:1000, r:70, healDps:4, restHp:25 },
+  cam:{ zoom:1.1, lerp:0.12 }
+};
 
-    create(){
-      console.log('[GRISPEN] Scene.create() starting');
-      try {
-        this.world.setBounds(0,0,W,H);
-        this.physics.world.setBounds(0,0,W,H);
-        this.cameras.main.setBackgroundColor('#e8e2d4');
-        this.cameras.main.setBounds(0,0,W,H);
+/* ---------------- palette (ART_PROMPTS cheat sheet) ---------------- */
+var COL = {
+  paper:0xe8e2d4, paperDark:0xd6d0be, ink:0x1a1a1a, faded:0x555555,
+  blood:0xc43a2a, amber:0xd4a030, herb:0x4a6a3a, herbLight:0x6a8a4a,
+  blue:0x1a6ad4, wood:0x6a4a2a, woodDark:0x4a3018, rock:0x7a7a70,
+  flesh:0x6a7060, skin:0xd0b890, zombieSkin:0xcfc9b8, acid:0x6a9a2a
+};
 
-        // --- Ground ---
-        this.drawGround();
+/* ================================================================
+   SFX — synthesized WebAudio (no audio files needed)
+   ================================================================ */
+var SFX = {
+  ctx:null, master:null, noiseBuf:null, muted:false,
+  init:function(){
+    if (this.ctx) return;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    try {
+      this.ctx = new AC();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = 0.5;
+      this.master.connect(this.ctx.destination);
+      var len = this.ctx.sampleRate * 1;
+      this.noiseBuf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+      var d = this.noiseBuf.getChannelData(0);
+      for (var i=0;i<len;i++) d[i] = Math.random()*2-1;
+    } catch(e){ this.ctx = null; }
+  },
+  resume:function(){ if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
+  tone:function(o){
+    if (!this.ctx || this.muted) return;
+    o = o || {};
+    var t = o.t||0.15, f = o.f||440, f2 = (o.f2!=null)?o.f2:f, type = o.type||'sine',
+        v = o.v||0.3, delay = o.delay||0;
+    var osc = this.ctx.createOscillator(), g = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(f, this.ctx.currentTime + delay);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(20,f2), this.ctx.currentTime + delay + t);
+    g.gain.setValueAtTime(0.0001, this.ctx.currentTime + delay);
+    g.gain.exponentialRampToValueAtTime(v, this.ctx.currentTime + delay + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + delay + t);
+    osc.connect(g); g.connect(this.master);
+    osc.start(this.ctx.currentTime + delay);
+    osc.stop(this.ctx.currentTime + delay + t + 0.05);
+  },
+  noise:function(o){
+    if (!this.ctx || this.muted) return;
+    o = o || {};
+    var t = o.t||0.2, v = o.v||0.3, fc = o.fc||1000, type = o.type||'lowpass', delay = o.delay||0;
+    var src = this.ctx.createBufferSource(); src.buffer = this.noiseBuf;
+    src.playbackRate.value = 0.8 + Math.random()*0.4;
+    var flt = this.ctx.createBiquadFilter(); flt.type = type; flt.frequency.value = fc; flt.Q.value = 1;
+    var g = this.ctx.createGain();
+    g.gain.setValueAtTime(v, this.ctx.currentTime + delay);
+    g.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + delay + t);
+    src.connect(flt); flt.connect(g); g.connect(this.master);
+    src.start(this.ctx.currentTime + delay);
+    src.stop(this.ctx.currentTime + delay + t + 0.05);
+  },
+  swing:function(){ this.noise({t:.12,v:.22,fc:2400,type:'bandpass'}); this.tone({f:320,f2:120,t:.12,type:'triangle',v:.12}); },
+  hit:function(){ this.noise({t:.09,v:.35,fc:900}); this.tone({f:150,f2:55,t:.1,type:'sine',v:.4}); },
+  arrowShoot:function(){ this.noise({t:.1,v:.18,fc:3800,type:'bandpass'}); this.tone({f:620,f2:210,t:.12,type:'triangle',v:.16}); },
+  arrowHit:function(){ this.noise({t:.07,v:.25,fc:1200}); },
+  groan:function(){ var r=Math.random(); this.tone({f:80+r*45,f2:48,t:.7+r*.4,type:'sawtooth',v:.09}); this.tone({f:55+r*25,f2:38,t:.8,type:'triangle',v:.07,delay:.06}); },
+  die:function(){ this.tone({f:140,f2:40,t:.5,type:'sawtooth',v:.12}); this.noise({t:.2,v:.2,fc:500,delay:.05}); },
+  pickup:function(){ this.tone({f:520,f2:680,t:.08,type:'square',v:.1}); },
+  coin:function(){ this.tone({f:880,f2:880,t:.07,type:'square',v:.08}); this.tone({f:1320,f2:1760,t:.09,type:'square',v:.06,delay:.07}); },
+  craft:function(){ this.tone({f:300,f2:300,t:.05,type:'square',v:.09}); this.tone({f:460,f2:460,t:.05,type:'square',v:.09,delay:.09}); },
+  heal:function(){ this.tone({f:523,f2:784,t:.28,type:'sine',v:.13}); },
+  eat:function(){ this.tone({f:190,f2:140,t:.09,type:'sine',v:.18}); this.noise({t:.14,v:.14,fc:600,delay:.06}); },
+  hurt:function(){ this.tone({f:230,f2:85,t:.16,type:'sawtooth',v:.22}); this.noise({t:.1,v:.28,fc:750}); },
+  death:function(){ this.tone({f:320,f2:50,t:1.3,type:'sawtooth',v:.22}); this.noise({t:.7,v:.18,fc:400,delay:.12}); },
+  day:function(){ this.tone({f:110,f2:110,t:.5,type:'triangle',v:.16}); this.tone({f:164,f2:164,t:.55,type:'triangle',v:.1,delay:.12}); },
+  boom:function(){ this.noise({t:.7,v:.55,fc:320}); this.tone({f:85,f2:28,t:.55,type:'sine',v:.5}); },
+  acid:function(){ this.tone({f:280,f2:640,t:.14,type:'sawtooth',v:.08}); },
+  poison:function(){ this.tone({f:400,f2:180,t:.3,type:'sine',v:.1}); },
+  ui:function(){ this.tone({f:660,f2:660,t:.05,type:'square',v:.06}); }
+};
 
-        // --- Obstacles (non-interactive, block movement via colliders) ---
-        this.trees = this.physics.add.staticGroup();
-        this.rocks = this.physics.add.staticGroup();
-        this.spawnObstacles();
+/* ================================================================
+   localStorage save / high score
+   ================================================================ */
+var Store = {
+  loadHi:function(){ try { return JSON.parse(localStorage.getItem(HI_KEY)) || null; } catch(e){ return null; } },
+  saveHi:function(hi){ try { localStorage.setItem(HI_KEY, JSON.stringify(hi)); } catch(e){} },
+  loadSave:function(){ try { var s = JSON.parse(localStorage.getItem(SAVE_KEY)); return (s && s.v===1) ? s : null; } catch(e){ return null; } },
+  writeSave:function(x,y,s){ try { localStorage.setItem(SAVE_KEY, JSON.stringify({v:1,t:Date.now(),x:x,y:y,s:s})); } catch(e){} },
+  clearSave:function(){ try { localStorage.removeItem(SAVE_KEY); } catch(e){} }
+};
 
-        // --- Shelter (center) ---
-        this.shelter = this.add.graphics().setDepth(5);
-        this.sx = W/2; this.sy = H/2; this.sr = 70;
-        this.shelter.fillStyle(0x4a3a2a,1);
-        this.shelter.fillRect(this.sx-50,this.sy-50,100,100);
-        this.shelter.lineStyle(2,0x1a1208,1);
-        this.shelter.strokeRect(this.sx-50,this.sy-50,100,100);
-        this.shelter.lineStyle(1,0x1a1208,.7);
-        for (let i=-45;i<50;i+=12) this.shelter.lineBetween(this.sx-50,this.sy+i,this.sx+50,this.sy+i);
-        this.shelter.fillStyle(0x0a0805,1);
-        this.shelter.fillRect(this.sx-10,this.sy+20,20,30);
-        this.add.text(this.sx,this.sy-65,'SHELTER',{font:'11px Courier',color:'#444'}).setOrigin(.5).setDepth(6);
-        // invisible physics circle for shelter detection (not blocking — use a sensor-ish trick: skip collision with player)
-        // We'll detect shelter via distance, no body needed.
-
-        // --- Resources & crates ---
-        this.resources = [];
-        this.crates = [];
-        this.spawnResources();
-        this.spawnCrates();
-
-        // --- Player ---
-        this.player = this.add.graphics().setDepth(30);
-        this.drawPlayer(this.player);
-        this.player.x = W/2; this.player.y = W/2 - 140;
-        this.physics.add.existing(this.player);
-        this.player.body.setCircle(12);
-        this.player.body.setCollideWorldBounds(true);
-        this.player.dirMarker = this.add.graphics().setDepth(31);
-        console.log('[GRISPEN] player created at', this.player.x, this.player.y);
-
-        // collide player with trees/rocks
-        this.physics.add.collider(this.player, this.trees);
-        this.physics.add.collider(this.player, this.rocks);
-
-        // --- Aim cone ---
-        this.aimG = this.add.graphics().setDepth(35).setAlpha(.7);
-
-        // --- Zombie/animal/arrow groups (plain arrays, managed manually) ---
-        this.enemies = [];
-        this.arrows = [];
-        for (let i=0;i<6;i++) this.spawnZombie();
-        for (let i=0;i<8;i++) this.spawnAnimal();
-
-        // --- Input ---
-        this.keys = this.input.keyboard.addKeys({
-          W:'W',A:'A',S:'S',D:'D',UP:'UP',DOWN:'DOWN',LEFT:'LEFT',RIGHT:'RIGHT',
-          SHIFT:Phaser.Input.Keyboard.KeyCodes.SHIFT,
-          E:'E',ONE:'ONE',TWO:'TWO',R:'R',
-        });
-        this.charging = false;
-        this.chargeTime = 0;
-        this.attackCD = 0;
-        this.input.on('pointerdown',()=>{ this.charging=true; this.chargeTime=0; });
-        this.input.on('pointerup',()=>{ if(this.charging){this.charging=false; this.attack();}});
-
-        // --- Camera ---
-        this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
-        this.cameras.main.setZoom(1.1);
-
-        // --- Game state ---
-        this.s = {
-          hp:100, hpMax:100,
-          hunger:100, hungerMax:100,
-          stamina:100, staminaMax:100,
-          wood:0, herbs:0, arrows:5, meat:0, zcoins:0,
-          kills:0, day:1,
-          weapon:'knife',
-          msgT:0, dayT:0, zspT:0, diff:1,
-        };
-
-        // show HUD
-        ['hud','mm','weapon','inv','hint'].forEach(id=>document.getElementById(id).style.display='block');
-        setTimeout(()=>document.getElementById('hint').style.display='none', 14000);
-
-        this.msg("You wake up. The world has turned gray. Survive.");
-        console.log('[GRISPEN] Scene.create() done. Enemies:', this.enemies.length, 'Resources:', this.resources.length);
-      } catch(err){
-        console.error('[GRISPEN] create() error:', err);
-        const el = document.getElementById('err');
-        el.style.display = 'block';
-        el.textContent = 'CREATE ERROR: ' + err.message + '\n' + err.stack;
-      }
-    }
-
-    drawGround(){
-      const g = this.add.graphics().setDepth(0);
-      g.fillStyle(0xe8e2d4,1);
-      g.fillRect(0,0,W,H);
-      // light stipple
-      g.fillStyle(0x8a7e64,0.08);
-      for (let i=0;i<5000;i++){
-        g.fillRect(Math.random()*W, Math.random()*H, 1, 1);
-      }
-      // hatching lines (faint)
-      g.lineStyle(1, 0x9a8d70, .06);
-      for (let i=-H;i<W;i+=22){ g.lineBetween(i,0,i+H,H); }
-      // border
-      const b = this.add.graphics().setDepth(1);
-      b.lineStyle(3,0x1a1a1a,.7);
-      b.strokeRect(3,3,W-6,H-6);
-    }
-
-    spawnObstacles(){
-      // Trees
-      for (let i=0;i<55;i++){
-        let x,y,t=0;
-        do{ x=Phaser.Math.Between(60,W-60); y=Phaser.Math.Between(60,H-60); t++;}
-        while(Phaser.Math.Distance.Between(x,y,this.sx,this.sy)<230 && t<20);
-        let r = 22+Math.random()*14;
-        let g = this.add.graphics().setDepth(20);
-        g.fillStyle(0x3a4a30,.95); g.fillCircle(x,y,r);
-        g.lineStyle(1.5,0x1a1a1a,1); g.strokeCircle(x,y,r);
-        // hatch
-        g.lineStyle(.7,0x1a2a10,.6);
-        for (let a=0;a<Math.PI*2;a+=.5) g.lineBetween(x,y,x+Math.cos(a)*r*.85,y+Math.sin(a)*r*.85);
-        g.fillStyle(0x2a1a10,1); g.fillCircle(x,y,4);
-        this.physics.add.existing(g, Phaser.Physics.Arcade.STATIC_BODY);
-        g.body.setCircle(r*.7);
-        g.refreshBody();
-        this.trees.add(g);
-      }
-      // Rocks
-      for (let i=0;i<25;i++){
-        let x,y,t=0;
-        do{ x=Phaser.Math.Between(60,W-60); y=Phaser.Math.Between(60,H-60); t++;}
-        while(Phaser.Math.Distance.Between(x,y,this.sx,this.sy)<200 && t<20);
-        let g = this.add.graphics().setDepth(15);
-        let rx=12+Math.random()*8, ry=10+Math.random()*5;
-        g.fillStyle(0x7a7a70,1); g.fillEllipse(x,y,rx*2,ry*2);
-        g.lineStyle(1.3,0x1a1a1a,1); g.strokeEllipse(x,y,rx*2,ry*2);
-        this.physics.add.existing(g, Phaser.Physics.Arcade.STATIC_BODY);
-        g.body.setCircle(rx*.9);
-        g.refreshBody();
-        this.rocks.add(g);
-      }
-    }
-
-    spawnResources(){
-      // Wood stumps
-      for (let i=0;i<20;i++){
-        let x,y,t=0;
-        do{ x=Phaser.Math.Between(60,W-60); y=Phaser.Math.Between(60,H-60); t++;}
-        while(Phaser.Math.Distance.Between(x,y,this.sx,this.sy)<160 && t<20);
-        let g = this.add.graphics().setDepth(16);
-        g.fillStyle(0x6a4a2a,1); g.fillCircle(x,y,12);
-        g.lineStyle(1.3,0x2a1a0a,1); g.strokeCircle(x,y,12);
-        g.lineStyle(.8,0x2a1a0a,.7);
-        for (let r=3;r<=10;r+=3) g.strokeCircle(x,y,r);
-        this.physics.add.existing(g, Phaser.Physics.Arcade.STATIC_BODY);
-        g.body.setCircle(13); g.refreshBody();
-        g.rtype='wood'; g.uses=3; this.resources.push(g);
-      }
-      // Herb bushes
-      for (let i=0;i<22;i++){
-        let x,y,t=0;
-        do{ x=Phaser.Math.Between(60,W-60); y=Phaser.Math.Between(60,H-60); t++;}
-        while(Phaser.Math.Distance.Between(x,y,this.sx,this.sy)<160 && t<20);
-        let g = this.add.graphics().setDepth(16);
-        g.fillStyle(0x4a6a3a,.95);
-        for (let j=0;j<5;j++){ let a=(j/5)*Math.PI*2; g.fillCircle(x+Math.cos(a)*7,y+Math.sin(a)*7,7);}
-        g.lineStyle(1.1,0x1a2a10,1);
-        for (let j=0;j<5;j++){ let a=(j/5)*Math.PI*2; g.strokeCircle(x+Math.cos(a)*7,y+Math.sin(a)*7,7);}
-        this.physics.add.existing(g, Phaser.Physics.Arcade.STATIC_BODY);
-        g.body.setCircle(13); g.refreshBody();
-        g.rtype='herb'; g.uses=2; this.resources.push(g);
-      }
-    }
-
-    spawnCrates(){
-      const spots = [
-        [W/2+200,H/2-80],[W/2-220,H/2+100],[W/2+400,H/2+200],[W/2-400,H/2-300],
-        [W/2+600,H/2-200],[W/2-550,H/2+400],[W/2+150,H/2+500],[W/2-300,H/2-500],
-      ];
-      for (const p of spots){
-        let c = this.add.graphics().setDepth(17);
-        c.fillStyle(0x6a4a2a,1); c.fillRect(p[0]-18,p[1]-18,36,36);
-        c.lineStyle(1.8,0x1a1208,1); c.strokeRect(p[0]-18,p[1]-18,36,36);
-        c.lineBetween(p[0]-18,p[1],p[0]+18,p[1]);
-        c.lineBetween(p[0],p[1]-18,p[0],p[1]+18);
-        this.physics.add.existing(c, Phaser.Physics.Arcade.STATIC_BODY);
-        c.body.setCircle(18); c.refreshBody();
-        c.looted=false;
-        this.crates.push(c);
-      }
-    }
-
-    drawPlayer(g){
-      // Caller is responsible for setting g.x/g.y; we draw at (0,0)
-      g.fillStyle(0x2a2a2a,1); g.fillCircle(0,2,12);
-      g.lineStyle(1.4,0x0,1); g.strokeCircle(0,2,12);
-      g.fillStyle(0x4a3a2a,1); g.fillRect(-7,-12,14,10);
-      g.lineStyle(1,0x0,1); g.strokeRect(-7,-12,14,10);
-      g.fillStyle(0xd0b890,.95); g.fillCircle(0,-6,6);
-      g.lineStyle(1.2,0x0,1); g.strokeCircle(0,-6,6);
-      g.fillStyle(0x1a1a1a,1); g.fillCircle(0,-9,5);
-      g.fillStyle(0x2a2a2a,1);
-      g.fillRect(-13,-2,4,7); g.fillRect(9,-2,4,7);
-      g.fillStyle(0x1a1a1a,1);
-      g.fillRect(-7,10,4,7); g.fillRect(3,10,4,7);
-    }
-
-    drawZombieOn(g){
-      g.fillStyle(0x6a7060,1); g.fillCircle(0,2,10);
-      g.lineStyle(1.4,0x1a1a1a,1); g.strokeCircle(0,2,10);
-      g.fillStyle(0x8a8a78,1); g.fillCircle(0,-7,5.5);
-      g.lineStyle(1.2,0x1a1a1a,1); g.strokeCircle(0,-7,5.5);
-      g.fillStyle(0x6a7060,1);
-      g.fillRect(-14,-3,5,4); g.fillRect(9,-3,5,4);
-      g.lineStyle(.6,0x2a2a20,.7);
-      for (let i=0;i<4;i++) g.lineBetween(-6+i*3,-2,-2+i*3,8);
-      // red blood accent
-      g.fillStyle(0xc43a2a,.95);
-      g.fillCircle(-3,-6,1.8); g.fillCircle(4,1,1.3);
-    }
-
-    drawAnimalOn(g){
-      g.fillStyle(0x8a6a4a,1); g.fillCircle(0,0,8);
-      g.lineStyle(1.1,0x1a1a1a,1); g.strokeCircle(0,0,8);
-      g.fillStyle(0x8a6a4a,1);
-      g.fillEllipse(-4,-7,3,5); g.fillEllipse(4,-7,3,5);
-      g.fillStyle(0x0,1); g.fillCircle(2,-2,1);
-    }
-
-    spawnZombie(){
-      let x,y,t=0;
-      do{ x=Math.random()*(W-80)+40; y=Math.random()*(H-80)+40; t++;}
-      while(Phaser.Math.Distance.Between(x,y,this.player.x,this.player.y)<400 && t<30);
-      let z = this.add.graphics().setDepth(25);
-      this.drawZombieOn(z); // draws at local (0,0)
-      z.x=x; z.y=y;
-      this.physics.add.existing(z);
-      z.body.setCircle(10);
-      z.hpBg = this.add.rectangle(x,y-17,20,3,0x222,.85).setStrokeStyle(1,0x0).setDepth(26);
-      z.hpFg = this.add.rectangle(x-10,y-17,20,2,0xc43a2a,1).setOrigin(0,.5).setDepth(27);
-      z.isZombie=true;
-      z.hp = 28 + Math.floor(this.s.diff*9);
-      z.hpMax = z.hp;
-      z.spd = 38 + Math.random()*12 + this.s.diff*3;
-      z.atkCD = 0;
-      z.flash = 0;
-      this.enemies.push(z);
-    }
-
-    spawnAnimal(){
-      let x,y,t=0;
-      do{ x=Math.random()*(W-80)+40; y=Math.random()*(H-80)+40; t++;}
-      while(Phaser.Math.Distance.Between(x,y,this.player.x,this.player.y)<260 && t<20);
-      let a = this.add.graphics().setDepth(22);
-      this.drawAnimalOn(a);
-      a.x=x; a.y=y;
-      this.physics.add.existing(a);
-      a.body.setCircle(9);
-      a.isAnimal=true; a.hp=16; a.hpMax=16;
-      a.dir=Math.random()*Math.PI*2; a.wt=0;
-      this.enemies.push(a);
-    }
-
-    attack(){
-      const charge = Math.min(this.chargeTime, 1.2);
-      const wp = this.cameras.main.getWorldPoint(this.input.x,this.input.y);
-      let dx = wp.x - this.player.x;
-      let dy = wp.y - this.player.y;
-      const d = Math.hypot(dx,dy) || 1;
-      dx/=d; dy/=d;
-      const ang = Math.atan2(dy,dx);
-
-      if (this.s.weapon==='knife'){
-        const dmg = 15 + Math.floor(charge*25);
-        const range = 55 + charge*12;
-        const arc = .9 + charge*.45;
-        this.melee(ang,range,arc,dmg);
-        this.slashFx(ang,range);
-        this.attackCD = .32;
-      } else {
-        if (this.s.arrows<=0){ this.msg("Out of arrows! Press R to craft."); this.aimG.clear(); return; }
-        this.s.arrows--;
-        const dmg = 25+Math.floor(charge*35);
-        const spd = 420+charge*200;
-        this.shootArrow(dx,dy,spd,dmg);
-        this.attackCD = .5;
-      }
-      this.aimG.clear();
-    }
-
-    melee(ang,range,arc,dmg){
-      // enemies
-      for (const e of this.enemies){
-        if (!e.active) continue;
-        const ex=e.x-this.player.x, ey=e.y-this.player.y;
-        const dist = Math.hypot(ex,ey);
-        if (dist > range+11) continue;
-        const a = Math.atan2(ey,ex);
-        const diff = Math.abs(Math.atan2(Math.sin(a-ang),Math.cos(a-ang)));
-        if (diff < arc/2) this.hitEnemy(e,dmg);
-      }
-      // resources
-      for (const r of this.resources){
-        if (!r.active) continue;
-        const ex=r.x-this.player.x, ey=r.y-this.player.y;
-        const dist = Math.hypot(ex,ey);
-        if (dist > range+15) continue;
-        const a = Math.atan2(ey,ex);
-        const diff = Math.abs(Math.atan2(Math.sin(a-ang),Math.cos(a-ang)));
-        if (diff < arc/2) this.harvest(r);
-      }
-    }
-
-    shootArrow(dx,dy,spd,dmg){
-      const a = this.add.graphics().setDepth(40);
-      a.lineStyle(2,0x1a1a1a,1); a.lineBetween(-9,0,7,0);
-      a.fillStyle(0x1a1a1a,1); a.fillTriangle(7,-3,7,3,13,0);
-      a.lineStyle(1,0x666,1); a.lineBetween(-9,-1,-12,-3); a.lineBetween(-9,1,-12,3);
-      a.x = this.player.x+dx*18; a.y = this.player.y+dy*18;
-      a.rotation = Math.atan2(dy,dx);
-      this.physics.add.existing(a);
-      a.body.setVelocity(dx*spd,dy*spd);
-      a.body.setCollideWorldBounds(true);
-      a.dmg=dmg; a.life=1.2;
-      this.arrows.push(a);
-    }
-
-    slashFx(ang,range){
-      const g = this.add.graphics().setDepth(45);
-      g.lineStyle(3,0x1a1a1a,.65);
-      g.arc(this.player.x,this.player.y,range*.85,ang-.5,ang+.5); g.strokePath();
-      g.lineStyle(2,0xc43a2a,.4);
-      g.arc(this.player.x,this.player.y,range*.75,ang-.4,ang+.4); g.strokePath();
-      this.tweens.add({targets:g,alpha:0,duration:250,onComplete:()=>g.destroy()});
-    }
-
-    hitEnemy(e,dmg){
-      e.hp -= dmg; e.flash = .12;
-      this.blood(e.x,e.y,5);
-      const ang = Math.atan2(e.y-this.player.y, e.x-this.player.x);
-      e.body.setVelocity(Math.cos(ang)*160, Math.sin(ang)*160);
-      if (e.hpFg){ e.hpFg.width = Math.max(0,(e.hp/e.hpMax)*20); }
-      if (e.hp<=0) this.killEnemy(e);
-    }
-
-    killEnemy(e){
-      this.blood(e.x,e.y,10);
-      if (e.isZombie){
-        this.s.kills++;
-        if (Math.random()<.45) this.s.zcoins += 1+Math.floor(Math.random()*3);
-        if (Math.random()<.3){ this.s.meat++; this.popup(e.x,e.y-14,"+meat",0xc43a2a);}
-      } else if (e.isAnimal){
-        this.s.meat += 2;
-        this.popup(e.x,e.y-14,"+2 meat",0xc43a2a);
-        setTimeout(()=>this.spawnAnimal(), 10000);
-      }
-      if (e.hpBg) e.hpBg.destroy();
-      if (e.hpFg) e.hpFg.destroy();
-      const i = this.enemies.indexOf(e);
-      if (i>-1) this.enemies.splice(i,1);
-      e.destroy();
-    }
-
-    harvest(r){
-      if (r.rtype==='wood'){ this.s.wood++; this.popup(r.x,r.y-13,"+1 wood",0x6a4a2a);}
-      else { this.s.herbs++; this.popup(r.x,r.y-13,"+1 herb",0x4a6a3a);}
-      this.spark(r.x,r.y, r.rtype==='wood'?0x6a4a2a:0x4a6a3a);
-      r.uses--;
-      if (r.uses<=0){
-        const i = this.resources.indexOf(r);
-        if (i>-1) this.resources.splice(i,1);
-        r.destroy();
-        const t = r.rtype;
-        setTimeout(()=>this.respawnResource(t), 25000);
-      }
-    }
-
-    respawnResource(type){
-      let x,y,t0=0;
-      do{ x=Phaser.Math.Between(60,W-60); y=Phaser.Math.Between(60,H-60); t0++;}
-      while(Phaser.Math.Distance.Between(x,y,this.sx,this.sy)<160 && t0<20);
-      let g = this.add.graphics().setDepth(16);
-      if (type==='wood'){
-        g.fillStyle(0x6a4a2a,1); g.fillCircle(x,y,12);
-        g.lineStyle(1.3,0x2a1a0a,1); g.strokeCircle(x,y,12);
-        g.lineStyle(.8,0x2a1a0a,.7);
-        for (let r=3;r<=10;r+=3) g.strokeCircle(x,y,r);
-      } else {
-        g.fillStyle(0x4a6a3a,.95);
-        for (let j=0;j<5;j++){ let a=(j/5)*Math.PI*2; g.fillCircle(x+Math.cos(a)*7,y+Math.sin(a)*7,7);}
-        g.lineStyle(1.1,0x1a2a10,1);
-        for (let j=0;j<5;j++){ let a=(j/5)*Math.PI*2; g.strokeCircle(x+Math.cos(a)*7,y+Math.sin(a)*7,7);}
-      }
-      this.physics.add.existing(g, Phaser.Physics.Arcade.STATIC_BODY);
-      g.body.setCircle(13); g.refreshBody();
-      g.rtype=type; g.uses=type==='wood'?3:2;
-      this.resources.push(g);
-    }
-
-    blood(x,y,n){
-      for (let i=0;i<n;i++){
-        let b = this.add.circle(x+(Math.random()-.5)*16, y+(Math.random()-.5)*16, 1+Math.random()*2, 0xc43a2a,.9).setDepth(42);
-        this.tweens.add({targets:b,alpha:0,scale:.3,y:b.y+4,duration:600+Math.random()*300,onComplete:()=>b.destroy()});
-      }
-    }
-    spark(x,y,c){
-      for (let i=0;i<4;i++){
-        let s = this.add.rectangle(x+(Math.random()-.5)*12,y+(Math.random()-.5)*12,3,3,c,.9).setDepth(42);
-        this.tweens.add({targets:s,alpha:0,y:s.y-10,duration:400,onComplete:()=>s.destroy()});
-      }
-    }
-    popup(x,y,t,c){
-      let tx = this.add.text(x,y,t,{font:'10px Courier',color:'#'+c.toString(16).padStart(6,'0')}).setOrigin(.5).setDepth(43);
-      this.tweens.add({targets:tx,y:y-25,alpha:0,duration:1000,onComplete:()=>tx.destroy()});
-    }
-
-    msg(t){
-      const el=document.getElementById('msg');
-      el.textContent=t; el.style.opacity='1';
-      this.s.msgT=2.2;
-    }
-
-    update(_,dt){
-      dt = dt/1000;
-      try { this._update(dt); }
-      catch(err){
-        console.error('[GRISPEN] update error:',err);
-        const el=document.getElementById('err');
-        el.style.display='block';
-        el.textContent='UPDATE ERROR: '+err.message+'\n'+err.stack;
-      }
-    }
-
-    _update(dt){
-      if (this.s.msgT>0){ this.s.msgT-=dt; if(this.s.msgT<=0) document.getElementById('msg').style.opacity='0'; }
-
-      // --- Movement ---
-      let vx=0, vy=0;
-      let spd = 180;
-      const sprint = this.keys.SHIFT.isDown && this.s.stamina>5;
-      if (sprint) spd = 300;
-      if (this.keys.W.isDown||this.keys.UP.isDown) vy-=1;
-      if (this.keys.S.isDown||this.keys.DOWN.isDown) vy+=1;
-      if (this.keys.A.isDown||this.keys.LEFT.isDown) vx-=1;
-      if (this.keys.D.isDown||this.keys.RIGHT.isDown) vx+=1;
-      const m = Math.hypot(vx,vy);
-      if (m>0){ vx/=m; vy/=m; }
-      this.player.body.setVelocity(vx*spd, vy*spd);
-
-      if (sprint && m>0) this.s.stamina -= 30*dt;
-      else this.s.stamina = Math.min(this.s.staminaMax, this.s.stamina+(m>0?12:24)*dt);
-
-      // --- Aim angle ---
-      const wp = this.cameras.main.getWorldPoint(this.input.x,this.input.y);
-      const ang = Math.atan2(wp.y-this.player.y, wp.x-this.player.x);
-
-      // direction indicator
-      this.player.dirMarker.clear();
-      this.player.dirMarker.x = this.player.x; this.player.dirMarker.y = this.player.y;
-      this.player.dirMarker.fillStyle(0xc43a2a,.85);
-      this.player.dirMarker.fillTriangle(
-        Math.cos(ang)*17, Math.sin(ang)*17,
-        Math.cos(ang+2.7)*11, Math.sin(ang+2.7)*11,
-        Math.cos(ang-2.7)*11, Math.sin(ang-2.7)*11
-      );
-
-      // --- Charging cone ---
-      if (this.charging){
-        this.chargeTime += dt;
-        const c = Math.min(this.chargeTime, 1.2);
-        this.aimG.clear();
-        const range = (this.s.weapon==='knife'?55:230) + c*30;
-        const arc = (this.s.weapon==='knife'?0.5+c*.25:0.28-c*.12);
-        const col = this.s.weapon==='knife'?0xc43a2a:0xd4a030;
-        this.aimG.fillStyle(col,.22);
-        this.aimG.beginPath();
-        this.aimG.moveTo(this.player.x,this.player.y);
-        this.aimG.arc(this.player.x,this.player.y,range,ang-arc,ang+arc);
-        this.aimG.closePath();
-        this.aimG.fillPath();
-        this.aimG.lineStyle(2,col,.7);
-        this.aimG.strokePath();
-      }
-      if (this.attackCD>0) this.attackCD -= dt;
-
-      // --- Enemies AI ---
-      for (let i=this.enemies.length-1;i>=0;i--){
-        const e = this.enemies[i];
-        if (!e.active){ this.enemies.splice(i,1); continue; }
-        const v = e.body.velocity;
-        if (Math.abs(v.x)>40 || Math.abs(v.y)>40){
-          e.body.setVelocity(v.x*.9, v.y*.9);
-        } else {
-          if (e.isAnimal){
-            e.wt -= dt;
-            const ex=this.player.x-e.x, ey=this.player.y-e.y;
-            const d=Math.hypot(ex,ey);
-            if (d<100) e.body.setVelocity(-ex/d*100, -ey/d*100);
-            else {
-              if (e.wt<=0){ e.dir=Math.random()*Math.PI*2; e.wt=1+Math.random()*2; }
-              e.body.setVelocity(Math.cos(e.dir)*25, Math.sin(e.dir)*25);
-            }
-          } else if (e.isZombie){
-            const ex=this.player.x-e.x, ey=this.player.y-e.y;
-            const d=Math.hypot(ex,ey);
-            if (d<500){
-              e.body.setVelocity(ex/d*e.spd, ey/d*e.spd);
-              if (d<26){
-                if (e.atkCD<=0){
-                  this.damagePlayer(5+Math.floor(this.s.diff*2));
-                  e.atkCD = 1.0;
-                  this.blood(this.player.x,this.player.y,2);
-                }
-              }
-            } else e.body.setVelocity(0,0);
-            if (e.atkCD>0) e.atkCD -= dt;
-          }
-        }
-        if (e.flash>0){ e.flash-=dt; e.setTint(0xff9999); }
-        else e.clearTint();
-        if (e.hpBg){ e.hpBg.x=e.x; e.hpBg.y=e.y-17; e.hpFg.x=e.x-10; e.hpFg.y=e.y-17; }
-      }
-
-      // --- Arrows ---
-      for (let i=this.arrows.length-1;i>=0;i--){
-        const ar = this.arrows[i];
-        ar.rotation = Math.atan2(ar.body.velocity.y, ar.body.velocity.x);
-        ar.life -= dt;
-        let hit=false;
-        for (const e of this.enemies){
-          if (Phaser.Math.Distance.Between(ar.x,ar.y,e.x,e.y)<13){
-            this.hitEnemy(e, ar.dmg);
-            hit=true; break;
-          }
-        }
-        if (hit || ar.life<=0){ ar.destroy(); this.arrows.splice(i,1); }
-      }
-
-      // --- Nearby interactable ---
-      let nearCrate = null;
-      for (const c of this.crates){
-        if (c.looted) continue;
-        if (Phaser.Math.Distance.Between(this.player.x,this.player.y,c.x,c.y)<35){ nearCrate=c; break; }
-      }
-      const inS = Phaser.Math.Distance.Between(this.player.x,this.player.y,this.sx,this.sy) < this.sr;
-      if (inS) this.s.hp = Math.min(this.s.hpMax, this.s.hp+4*dt);
-
-      // --- Hotkeys ---
-      if (Phaser.Input.Keyboard.JustDown(this.keys.E)){
-        if (nearCrate && !nearCrate.looted){
-          nearCrate.looted = true;
-          nearCrate.alpha = .35;
-          const r=Math.random();
-          if (r<.25){ this.s.arrows+=5; this.msg("Found 5 arrows!");}
-          else if (r<.5){ this.s.wood+=3; this.msg("Found 3 wood!");}
-          else if (r<.7){ this.s.meat+=1; this.msg("Found canned meat!");}
-          else if (r<.88){ this.s.herbs+=2; this.msg("Found 2 herbs!");}
-          else { this.s.zcoins+=10; this.msg("Found 10 Z-Coins!");}
-          this.spark(nearCrate.x,nearCrate.y,0xeeeeee);
-        } else if (inS){
-          // Simple shelter: auto-heal + craft available
-          if (this.s.meat>0 && this.s.hunger<this.s.hungerMax){
-            this.s.meat--; this.s.hunger=Math.min(this.s.hungerMax,this.s.hunger+40);
-            this.msg("Cooked and ate meat.");
-          }
-          if (this.s.herbs>=2 && this.s.hp<this.s.hpMax){
-            this.s.herbs-=2; this.s.hp=Math.min(this.s.hpMax,this.s.hp+30);
-            this.msg("Used herbs to heal.");
-          }
-          this.s.hp = Math.min(this.s.hpMax, this.s.hp+25);
-          this.s.stamina = this.s.staminaMax;
-          this.msg("You rest at the shelter.");
-        }
-      }
-      if (Phaser.Input.Keyboard.JustDown(this.keys.ONE)){this.s.weapon='knife';this.charging=false;this.aimG.clear();this.msg("Knife equipped");}
-      if (Phaser.Input.Keyboard.JustDown(this.keys.TWO)){this.s.weapon='bow';this.charging=false;this.aimG.clear();this.msg("Bow equipped");}
-      if (Phaser.Input.Keyboard.JustDown(this.keys.R)){
-        if (this.s.wood>=1){ this.s.wood--; this.s.arrows+=5; this.msg("Crafted 5 arrows.");}
-        else this.msg("Need 1 wood.");
-      }
-
-      // --- Survival ---
-      this.s.hunger -= 1.2*dt;
-      if (this.s.hunger<=0){ this.s.hunger=0; this.s.hp -= 3*dt; }
-      else if (this.s.hunger>40 && !inS) this.s.hp = Math.min(this.s.hpMax, this.s.hp+.35*dt);
-
-      // --- Day cycle ---
-      this.s.dayT += dt;
-      if (this.s.dayT>60){
-        this.s.dayT=0; this.s.day++; this.s.diff+=.5;
-        this.msg("Day "+this.s.day+" — The infected grow restless...");
-      }
-      this.s.zspT -= dt;
-      if (this.s.zspT<=0){
-        const cz = this.enemies.filter(e=>e.isZombie).length;
-        const maxZ = 7 + this.s.day*2;
-        if (cz<maxZ) this.spawnZombie();
-        this.s.zspT = Math.max(2,5-this.s.day*.3);
-      }
-
-      if (this.s.hp<=0){ this.gameOver(); return; }
-
-      this.updateHUD();
-      this.updateMM();
-    }
-
-    damagePlayer(d){
-      this.s.hp -= d;
-      this.cameras.main.shake(120,.006);
-      let f = this.add.rectangle(0,0,this.scale.width,this.scale.height,0xc43a2a,.25).setScrollFactor(0).setDepth(1000);
-      this.tweens.add({targets:f,alpha:0,duration:300,onComplete:()=>f.destroy()});
-    }
-
-    gameOver(){
-      document.getElementById('g-days').textContent = this.s.day;
-      document.getElementById('g-kills').textContent = this.s.kills;
-      document.getElementById('go').style.display='flex';
-      this.scene.pause();
-    }
-
-    updateHUD(){
-      document.getElementById('b-hp').style.width = Math.max(0,this.s.hp/this.s.hpMax*100)+'%';
-      document.getElementById('b-hu').style.width = Math.max(0,this.s.hunger/this.s.hungerMax*100)+'%';
-      document.getElementById('b-st').style.width = Math.max(0,this.s.stamina/this.s.staminaMax*100)+'%';
-      document.getElementById('d-day').textContent = this.s.day;
-      document.getElementById('d-kill').textContent = this.s.kills;
-      document.getElementById('w-name').textContent = this.s.weapon==='knife'?'Knife (melee)':'Bow (ranged)';
-      document.getElementById('w-ammo').textContent = this.s.weapon==='knife'?'∞':this.s.arrows;
-      document.getElementById('i-w').textContent = this.s.wood;
-      document.getElementById('i-h').textContent = this.s.herbs;
-      document.getElementById('i-a').textContent = this.s.arrows;
-      document.getElementById('i-m').textContent = this.s.meat;
-      document.getElementById('i-z').textContent = this.s.zcoins;
-    }
-
-    updateMM(){
-      const c=document.getElementById('mm'), ctx=c.getContext('2d'), s=130;
-      ctx.fillStyle='#d0cab8'; ctx.fillRect(0,0,s,s);
-      const sx=s/W, sy=s/H;
-      ctx.fillStyle='#5a3a1a'; ctx.fillRect(s/2-3,s/2-3,6,6);
-      ctx.fillStyle='#c43a2a';
-      for (const e of this.enemies){ if(e.isZombie) ctx.fillRect(e.x*sx-1,e.y*sy-1,2,2);}
-      ctx.fillStyle='#1a6ad4';
-      ctx.fillRect(this.player.x*sx-2,this.player.y*sy-2,4,4);
-    }
+/* ================================================================
+   Deterministic wobble helpers — imperfect "hand-drawn" shapes
+   ================================================================ */
+function wobPath(g, x, y, r, j, seed){
+  j = j || 1.2; seed = seed || 0;
+  var n = 16;
+  g.beginPath();
+  for (var i=0;i<=n;i++){
+    var a = i/n * Math.PI*2;
+    var rr = r + Math.sin(a*3 + x*0.13 + y*0.07 + seed*1.7)*j + Math.cos(a*5 + y*0.11 + x*0.05 + seed*0.9)*j*0.6;
+    var px = x + Math.cos(a)*rr, py = y + Math.sin(a)*rr;
+    if (i===0) g.moveTo(px,py); else g.lineTo(px,py);
   }
+  g.closePath();
+}
+function wobEllipse(g, x, y, rx, ry, j, seed){
+  j = j || 1.0; seed = seed || 0;
+  var n = 18;
+  g.beginPath();
+  for (var i=0;i<=n;i++){
+    var a = i/n * Math.PI*2;
+    var w = Math.sin(a*4 + x*0.1 + y*0.12 + seed*2.1)*j + Math.cos(a*2 + y*0.09 + seed)*j*0.5;
+    var px = x + Math.cos(a)*(rx + w), py = y + Math.sin(a)*(ry + w);
+    if (i===0) g.moveTo(px,py); else g.lineTo(px,py);
+  }
+  g.closePath();
+}
+function wobCircleFill(g, x, y, r, seed){
+  wobPath(g, x, y, r, 1.4, seed);
+  g.fillPath();
+}
 
-  // ---------- Boot ----------
-  const cfg = {
+/* ================================================================
+   Game scene
+   ================================================================ */
+function GameScene(){
+  Phaser.Scene.call(this, 'Game');
+  GameScene.continueData = null;
+}
+GameScene.prototype = Object.create(Phaser.Scene.prototype);
+GameScene.prototype.constructor = GameScene;
+GameScene.prototype.create = function(){
+    var self = this;
+    this.physics.world.setBounds(0,0,W,H);
+    this.cameras.main.setBackgroundColor(COL.paper);
+    this.cameras.main.setBounds(0,0,W,H);
+
+    /* ---- state ---- */
+    this.s = {
+      hp:100, hpMax:100, hunger:100, hungerMax:100, stamina:100, staminaMax:100,
+      wood:0, herbs:0, arrows:5, meat:0, zcoins:0,
+      kills:0, day:1, weapon:'knife',
+      msgT:0, dayT:0, zspT:3, saveT:5, groanT:6, poison:0,
+      alive:true, paused:false
+    };
+    this.charging=false; this.chargeTime=0; this.attackCD=0; this.aimAng=0;
+    this.stick = { x:0, y:0, active:false };
+
+    this.enemies=[]; this.arrows=[]; this.acids=[]; this.resources=[]; this.crates=[];
+    this.sx = BAL.shelter.x; this.sy = BAL.shelter.y; this.sr = BAL.shelter.r;
+
+    /* ---- world ---- */
+    this.drawGround();
+    this.trees = this.physics.add.staticGroup();
+    this.rocks = this.physics.add.staticGroup();
+    this.spawnObstacles();
+    this.drawShelter();
+    this.spawnResources();
+    this.spawnCrates();
+
+    /* ---- player ---- */
+    this.player = this.add.graphics().setDepth(30);
+    this.drawPlayerBody(this.player);
+    this.player.x = W/2; this.player.y = W/2 - 150;
+    this.physics.add.existing(this.player);
+    var pr = BAL.player.radius;
+    this.player.body.setCircle(pr, -pr, -pr); // centered on the (unsized) graphics object
+    this.player.body.setCollideWorldBounds(true);
+    this.player.body.setDrag(0);
+    this.physics.add.collider(this.player, this.trees);
+    this.physics.add.collider(this.player, this.rocks);
+
+    this.weaponG = this.add.graphics().setDepth(31);
+    this.dirG = this.add.graphics().setDepth(31);
+    this.poisonG = this.add.graphics().setDepth(32);
+    this.aimG = this.add.graphics().setDepth(34).setAlpha(0.9);
+    this.nightG = this.add.rectangle(0,0,1,1,0x0a1424,0).setScrollFactor(0).setDepth(900);
+
+    /* ---- populate ---- */
+    for (var i=0;i<6;i++) this.spawnInfector('zombie');
+    for (var j=0;j<BAL.animal.maxN;j++) this.spawnAnimal();
+
+    /* ---- input ---- */
+    this.keys = this.input.keyboard.addKeys({
+      W:'W', A:'A', S:'S', D:'D',
+      UP:'UP', DOWN:'DOWN', LEFT:'LEFT', RIGHT:'RIGHT',
+      SHIFT:Phaser.Input.Keyboard.KeyCodes.SHIFT,
+      E:'E', ONE:'ONE', TWO:'TWO', R:'R', P:'P', ESC:'ESCAPE', M:'M'
+    });
+    this.input.on('pointerdown', function(p){
+      SFX.resume();
+      if (!IS_TOUCH) { self.charging = true; self.chargeTime = 0; }
+    });
+    this._winUp = function(){
+      if (self.charging && !IS_TOUCH) { self.charging = false; self.attack(); }
+    };
+    window.addEventListener('pointerup', this._winUp);
+
+    /* ---- camera ---- */
+    this.cameras.main.startFollow(this.player, true, BAL.cam.lerp, BAL.cam.lerp);
+    this.cameras.main.setZoom(BAL.cam.zoom);
+
+    /* ---- HUD ---- */
+    ['hud','mm','weapon','inv'].forEach(function(id){ document.getElementById(id).style.display='block'; });
+    var hint = document.getElementById('hint');
+    hint.textContent = IS_TOUCH
+      ? 'Left side = move joystick · hold ATTACK to charge (auto-aim) · E to interact'
+      : 'WASD move · hold left-click to charge · chop stumps · pick green bushes · E at crates/shelter';
+    hint.style.display='block';
+    this.time.delayedCall(13000, function(){ hint.style.display='none'; });
+
+    if (IS_TOUCH){
+      document.getElementById('mobile').style.display='block';
+      document.getElementById('touch-ctrl').style.display='block';
+      this.setupMobile();
+    }
+
+    /* ---- continue from save ---- */
+    var cd = GameScene.continueData;
+    if (cd){
+      GameScene.continueData = null;
+      var ss = cd.s;
+      this.s.hp = ss.hp; this.s.hunger = ss.hunger; this.s.stamina = ss.stamina;
+      this.s.wood = ss.wood; this.s.herbs = ss.herbs; this.s.arrows = ss.arrows;
+      this.s.meat = ss.meat; this.s.zcoins = ss.zcoins;
+      this.s.kills = ss.kills; this.s.day = ss.day;
+      this.player.x = cd.x; this.player.y = cd.y;
+      this.msg('Day '+this.s.day+' — you press on.');
+    } else {
+      this.msg('You wake up. The world has turned gray. Survive.');
+    }
+  },
+
+  /* ================= drawing ================= */
+GameScene.prototype.drawGround = function(){
+    var g = this.add.graphics().setDepth(0);
+    g.fillStyle(COL.paper,1); g.fillRect(0,0,W,H);
+    // stipple noise
+    g.fillStyle(COL.ink, 0.05);
+    for (var i=0;i<4200;i++) g.fillRect(Math.random()*W, Math.random()*H, 1, 1);
+    // faint diagonal hatching
+    g.lineStyle(1, COL.ink, 0.045);
+    for (var d=-H; d<W; d+=26) g.lineBetween(d, 0, d+H, H);
+    // grass tufts
+    g.lineStyle(1, COL.herb, 0.10);
+    for (var t=0;t<380;t++){
+      var x=Math.random()*W, y=Math.random()*H;
+      g.lineBetween(x, y, x-2, y-5);
+      g.lineBetween(x+3, y+1, x+2, y-4);
+    }
+    // stray scratches
+    g.lineStyle(1, COL.ink, 0.07);
+    for (var k=0;k<70;k++){
+      var x2=Math.random()*W, y2=Math.random()*H, a=Math.random()*Math.PI*2, l=6+Math.random()*16;
+      g.lineBetween(x2, y2, x2+Math.cos(a)*l, y2+Math.sin(a)*l);
+    }
+    // world border
+    var b = this.add.graphics().setDepth(1);
+    b.lineStyle(3, COL.ink, 0.75); b.strokeRect(3,3,W-6,H-6);
+    b.lineStyle(1, COL.ink, 0.35); b.strokeRect(9,9,W-18,H-18);
+  },
+
+GameScene.prototype.drawShelter = function(){
+    var g = this.add.graphics().setDepth(8);
+    var x=this.sx, y=this.sy;
+    // safe-zone ring
+    g.lineStyle(1.5, COL.herb, 0.4);
+    wobEllipse(g, x, y, this.sr+8, this.sr+8, 2); g.strokePath();
+    g.fillStyle(COL.herb, 0.045);
+    wobEllipse(g, x, y, this.sr+8, this.sr+8, 2); g.fillPath();
+    // shadow
+    g.fillStyle(COL.ink, 0.13);
+    wobEllipse(g, x+7, y+9, 56, 52, 2); g.fillPath();
+    // cabin
+    g.fillStyle(COL.woodDark, 1);
+    g.fillRect(x-50, y-50, 100, 100);
+    g.lineStyle(2, COL.ink, 1); g.strokeRect(x-50, y-50, 100, 100);
+    // roof planks
+    g.lineStyle(1, COL.ink, 0.65);
+    for (var i=-42;i<=42;i+=14) g.lineBetween(x-50, y+i, x+50, y+i);
+    // roof ridge
+    g.lineStyle(2, COL.ink, 0.8);
+    g.lineBetween(x-50, y, x+50, y);
+    // door
+    g.fillStyle(0x0a0805, 1);
+    g.fillRect(x-11, y+26, 22, 24);
+    g.lineStyle(1.2, COL.ink, 1); g.strokeRect(x-11, y+26, 22, 24);
+    g.fillStyle(COL.paperDark, 0.5); g.fillRect(x-13, y+50, 26, 5);
+    // label
+    this.add.text(x, y-66, 'SHELTER', {font:'11px Courier', color:'#5a5346'}).setOrigin(.5).setDepth(9);
+  },
+
+GameScene.prototype.spawnObstacles = function(){
+    var self=this;
+    function farFromCenter(x,y,min){ return Phaser.Math.Distance.Between(x,y,self.sx,self.sy) > min; }
+    // trees (drawn in local coords, then positioned — .x/.y are world truth)
+    for (var i=0;i<50;i++){
+      var x,y,tries=0;
+      do { x=Phaser.Math.Between(70,W-70); y=Phaser.Math.Between(70,H-70); tries++; }
+      while (!farFromCenter(x,y,240) && tries<25);
+      var r = 20 + Math.random()*14;
+      var seed = Math.random()*10;
+      var g = this.add.graphics().setDepth(20);
+      g.fillStyle(COL.ink, 0.12); wobEllipse(g, 5, 7, r*0.9, r*0.55, 1.5, seed); g.fillPath();
+      g.fillStyle(0x3a4a30, 0.96); wobCircleFill(g, 0, 0, r, seed);
+      g.lineStyle(1.6, COL.ink, 1); wobPath(g, 0, 0, r, 1.6, seed); g.strokePath();
+      g.lineStyle(0.8, COL.ink, 0.5);
+      var spokes = 8 + Math.floor(r % 4);
+      for (var a=0;a<Math.PI*2;a+=Math.PI*2/spokes){
+        var a2=a+0.15;
+        g.lineBetween(Math.cos(a)*r*0.25, Math.sin(a)*r*0.25, Math.cos(a2)*r*0.82, Math.sin(a2)*r*0.82);
+      }
+      g.fillStyle(COL.woodDark, 1); g.fillCircle(0, 0, 3.5);
+      g.x = x; g.y = y;
+      // collision on an invisible circle (Graphics objects carry no size for static bodies)
+      var hitR = r*0.7;
+      var hit = this.add.circle(x, y, hitR, 0x111111, 0);
+      this.physics.add.existing(hit, Phaser.Physics.Arcade.STATIC_BODY);
+      hit.body.setCircle(hitR);
+      this.trees.add(hit);
+    }
+    // rocks
+    for (var j=0;j<22;j++){
+      var x2,y2,tries2=0;
+      do { x2=Phaser.Math.Between(70,W-70); y2=Phaser.Math.Between(70,H-70); tries2++; }
+      while (!farFromCenter(x2,y2,200) && tries2<25);
+      var rx=11+Math.random()*8, ry=9+Math.random()*5;
+      var seed2 = Math.random()*10;
+      var g2 = this.add.graphics().setDepth(15);
+      g2.fillStyle(COL.ink, 0.1); wobEllipse(g2, 4, 5, rx*0.95, ry*0.7, 1.2, seed2); g2.fillPath();
+      g2.fillStyle(COL.rock, 1); wobEllipse(g2, 0, 0, rx, ry, 1.4, seed2); g2.fillPath();
+      g2.lineStyle(1.4, COL.ink, 1); wobEllipse(g2, 0, 0, rx, ry, 1.4, seed2); g2.strokePath();
+      g2.lineStyle(0.8, COL.ink, 0.5);
+      wobEllipse(g2, -rx*0.25, -ry*0.2, rx*0.5, ry*0.45, 1, seed2); g2.strokePath();
+      g2.x = x2; g2.y = y2;
+      var rr = Math.max(rx,ry)*0.85;
+      var hit2 = this.add.circle(x2, y2, rr, 0x111111, 0);
+      this.physics.add.existing(hit2, Phaser.Physics.Arcade.STATIC_BODY);
+      hit2.body.setCircle(rr);
+      this.rocks.add(hit2);
+    }
+  },
+
+GameScene.prototype.spawnResources = function(){
+    for (var i=0;i<BAL.resource.stumps;i++) this.makeResource('wood');
+    for (var j=0;j<BAL.resource.bushes;j++) this.makeResource('herb');
+  },
+
+GameScene.prototype.makeResource = function(type){
+    var x,y,tries=0;
+    do { x=Phaser.Math.Between(70,W-70); y=Phaser.Math.Between(70,H-70); tries++; }
+    while (Phaser.Math.Distance.Between(x,y,this.sx,this.sy) < 170 && tries<25);
+    var seed = Math.random()*10;
+    var g = this.add.graphics().setDepth(16);
+    if (type==='wood'){
+      g.fillStyle(COL.wood, 1); wobCircleFill(g, 0, 0, 12, seed);
+      g.lineStyle(1.4, 0x2a1a0a, 1); wobPath(g, 0, 0, 12, 0.9, seed); g.strokePath();
+      g.lineStyle(0.8, 0x2a1a0a, 0.6);
+      wobPath(g, 0, 0, 8, 0.6, seed); g.strokePath();
+      wobPath(g, 0, 0, 4.5, 0.4, seed); g.strokePath();
+      g.lineBetween(-2, -3, 3, 4);
+    } else {
+      for (var k=0;k<6;k++){
+        var a=(k/6)*Math.PI*2, ox=Math.cos(a)*7, oy=Math.sin(a)*7;
+        g.fillStyle(COL.herb, 0.95); wobCircleFill(g, ox, oy, 6.5, seed+k);
+        g.lineStyle(1.1, 0x1a2a10, 0.9); wobPath(g, ox, oy, 6.5, 0.7, seed+k); g.strokePath();
+      }
+      g.fillStyle(COL.herbLight, 1);
+        g.fillCircle(-3, -2, 1.4); g.fillCircle(4, 3, 1.4); g.fillCircle(1, -4, 1.2);
+      }
+      g.x = x; g.y = y;
+    g.rtype = type;
+    g.uses = (type==='wood') ? BAL.resource.stumpUses : BAL.resource.bushUses;
+    this.resources.push(g);
+    return g;
+  },
+
+GameScene.prototype.spawnCrates = function(){
+    for (var i=0;i<BAL.crate.n;i++) this.makeCrate(true);
+  },
+
+GameScene.prototype.makeCrate = function(){
+    var x,y,tries=0;
+    do { x=Phaser.Math.Between(120,W-120); y=Phaser.Math.Between(120,H-120); tries++; }
+    while ((Phaser.Math.Distance.Between(x,y,this.sx,this.sy) < 260 ||
+            (this.player && Phaser.Math.Distance.Between(x,y,this.player.x,this.player.y) < 300)) && tries<30);
+    var g = this.add.graphics().setDepth(17);
+    g.fillStyle(COL.ink, 0.1); g.fillRect(-15, -11, 36, 36);
+    g.fillStyle(COL.wood, 1); g.fillRect(-18, -18, 36, 36);
+    g.lineStyle(1.8, 0x1a1208, 1); g.strokeRect(-18, -18, 36, 36);
+    g.lineStyle(1, 0x1a1208, 0.6);
+    g.lineBetween(-18, -6, 18, -6);
+    g.lineBetween(-18, 6, 18, 6);
+    g.lineStyle(1.4, 0x1a1208, 0.85);
+    g.lineBetween(-18, -18, 18, 18);
+    g.fillStyle(0x2a1a0a, 1);
+    g.fillCircle(-14, -14, 1.2); g.fillCircle(14, -14, 1.2);
+    g.fillCircle(-14, 14, 1.2); g.fillCircle(14, 14, 1.2);
+    g.x = x; g.y = y;
+    g.looted = false;
+    this.crates.push(g);
+  },
+
+GameScene.prototype.drawPlayerBody = function(g){
+    g.clear();
+    // shadow
+    g.fillStyle(COL.ink, 0.15); wobEllipse(g, 0, 9, 11, 5, 0.8); g.fillPath();
+    // legs
+    g.fillStyle(COL.ink, 1);
+    g.fillRect(-7, 8, 4, 7); g.fillRect(3, 8, 4, 7);
+    // body jacket
+    g.fillStyle(0x2f2f2f, 1); wobCircleFill(g, 0, 1, 11);
+    g.lineStyle(1.5, COL.ink, 1); wobPath(g, 0, 1, 11, 0.8); g.strokePath();
+    // backpack
+    g.fillStyle(COL.wood, 1); g.fillRect(-8, -15, 16, 11);
+    g.lineStyle(1.2, COL.ink, 1); g.strokeRect(-8, -15, 16, 11);
+    g.lineStyle(0.7, COL.ink, 0.6); g.lineBetween(-8, -10, 8, -10);
+    // arms
+    g.fillStyle(0x2f2f2f, 1);
+    g.fillCircle(-11, -1, 3); g.fillCircle(11, -1, 3);
+    g.lineStyle(1, COL.ink, 0.9);
+    g.strokeCircle(-11, -1, 3); g.strokeCircle(11, -1, 3);
+    // head + cap
+    g.fillStyle(COL.skin, 1); g.fillCircle(0, 0, 5.5);
+    g.lineStyle(1.2, COL.ink, 1); g.strokeCircle(0, 0, 5.5);
+    g.fillStyle(COL.ink, 1);
+    g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, 6, Phaser.Math.DegToRad(200), Phaser.Math.DegToRad(340)); g.closePath(); g.fillPath();
+    g.lineStyle(1, COL.ink, 0.9); g.lineBetween(-5, 0, 5, 0);
+  },
+
+GameScene.prototype.drawZombieG = function(g){
+    g.clear();
+    g.fillStyle(COL.ink, 0.13); wobEllipse(g, 0, 6, 10, 4.5, 0.8); g.fillPath();
+    // arms outstretched forward (local -y)
+    g.fillStyle(COL.flesh, 1);
+    g.fillCircle(-7, -8, 3); g.fillCircle(7, -8, 3);
+    g.lineStyle(1, COL.ink, 0.9); g.strokeCircle(-7, -8, 3); g.strokeCircle(7, -8, 3);
+    // hunched body
+    g.fillStyle(COL.flesh, 1); wobCircleFill(g, 0, 0, 9.5);
+    g.lineStyle(1.5, COL.ink, 1); wobPath(g, 0, 0, 9.5, 1); g.strokePath();
+    // tattered clothes hatch
+    g.lineStyle(0.7, COL.ink, 0.55);
+    g.lineBetween(-5, 3, -1, 8); g.lineBetween(1, 2, 5, 7); g.lineBetween(-3, -1, 3, 0);
+    // head
+    g.fillStyle(COL.zombieSkin, 1); g.fillCircle(0, -2, 5.5);
+    g.lineStyle(1.2, COL.ink, 1); g.strokeCircle(0, -2, 5.5);
+    g.fillStyle(COL.ink, 1);
+    g.fillCircle(-2, -4, 0.9); g.fillCircle(2, -4, 0.9);
+    // blood accents
+    g.fillStyle(COL.blood, 0.95);
+    g.fillCircle(-3.5, -0.5, 1.7); g.fillCircle(3, 4, 1.2); g.fillCircle(1, -8, 0.9);
+  },
+
+GameScene.prototype.drawSpiderG = function(g){
+    g.clear();
+    g.fillStyle(COL.ink, 0.12); wobEllipse(g, 0, 4, 8, 3.5, 0.6); g.fillPath();
+    // legs (4 per side, two segments)
+    g.lineStyle(1.4, COL.ink, 1);
+    for (var s=-1;s<=1;s+=2){
+      for (var i=0;i<4;i++){
+        var a = s*(0.5 + i*0.55);
+        var hx = Math.cos(a)*5, hy = Math.sin(a)*3;
+        var mx = Math.cos(a)*11, my = Math.sin(a)*9 + i*0.5;
+        var ex = Math.cos(a + s*0.35)*15, ey = Math.sin(a + s*0.35)*12;
+        g.lineBetween(hx, hy, mx, my);
+        g.lineBetween(mx, my, ex, ey);
+      }
+    }
+    // abdomen + head
+    g.fillStyle(0x3a3a38, 1); wobCircleFill(g, 0, 1.5, 5.5);
+    g.lineStyle(1.3, COL.ink, 1); wobPath(g, 0, 1.5, 5.5, 0.5); g.strokePath();
+    g.fillStyle(0x2a2a28, 1); g.fillCircle(0, -4, 3.6);
+    g.lineStyle(1.1, COL.ink, 1); g.strokeCircle(0, -4, 3.6);
+    // venom eyes
+    g.fillStyle(COL.acid, 1);
+    g.fillCircle(-1.6, -5, 1); g.fillCircle(1.6, -5, 1);
+    // fangs
+    g.fillStyle(COL.ink, 1);
+    g.fillTriangle(-2, -7, -1, -4.5, -0.5, -7);
+    g.fillTriangle(2, -7, 1, -4.5, 0.5, -7);
+  },
+
+GameScene.prototype.drawVomiterG = function(g){
+    g.clear();
+    g.fillStyle(COL.ink, 0.13); wobEllipse(g, 0, 7, 12, 5, 0.9); g.fillPath();
+    // arms
+    g.fillStyle(0xb8b2a0, 1);
+    g.fillCircle(-11, -4, 3); g.fillCircle(11, -4, 3);
+    g.lineStyle(1, COL.ink, 0.9); g.strokeCircle(-11, -4, 3); g.strokeCircle(11, -4, 3);
+    // swollen body
+    g.fillStyle(0xb8b2a0, 1); wobEllipse(g, 0, 0, 12, 10.5, 1.2); g.fillPath();
+    g.lineStyle(1.6, COL.ink, 1); wobEllipse(g, 0, 0, 12, 10.5, 1.2); g.strokePath();
+    // acid stain (telegraph for ranged attack)
+    g.fillStyle(COL.acid, 0.85); wobCircleFill(g, -2, 2, 5);
+    g.lineStyle(1, COL.ink, 0.8); wobPath(g, -2, 2, 5, 0.7); g.strokePath();
+    g.fillStyle(COL.acid, 1);
+    g.fillCircle(-5, -2, 1.3); g.fillCircle(2, 6, 1.1);
+    // head
+    g.fillStyle(COL.zombieSkin, 1); g.fillCircle(0, -8, 4.2);
+    g.lineStyle(1.2, COL.ink, 1); g.strokeCircle(0, -8, 4.2);
+    g.fillStyle(COL.ink, 1); g.fillCircle(-1.5, -9, 0.8); g.fillCircle(1.5, -9, 0.8);
+  },
+
+GameScene.prototype.drawExploderG = function(g){
+    g.clear();
+    g.fillStyle(COL.ink, 0.13); wobEllipse(g, 0, 6, 10, 4.5, 0.8); g.fillPath();
+    g.fillStyle(COL.zombieSkin, 1); wobCircleFill(g, 0, 0, 9);
+    g.lineStyle(1.5, COL.ink, 1); wobPath(g, 0, 0, 9, 1); g.strokePath();
+    // bandage wraps
+    g.lineStyle(1.6, 0xe8e2d4, 0.9);
+    g.lineBetween(-7, -3, 7, 1); g.lineBetween(-6, 4, 6, -1); g.lineBetween(-7, -3, 7, 1);
+    g.lineStyle(0.8, COL.ink, 0.4);
+    g.lineBetween(-7, -1.5, 7, 2.5);
+    // head
+    g.fillStyle(COL.zombieSkin, 1); g.fillCircle(0, -3, 4.5);
+    g.lineStyle(1.2, COL.ink, 1); g.strokeCircle(0, -3, 4.5);
+    g.fillStyle(COL.ink, 1); g.fillCircle(-1.5, -4, 0.8); g.fillCircle(1.5, -4, 0.8);
+    // warning mark
+    g.fillStyle(COL.amber, 1);
+    g.fillTriangle(0, -8.5, -3.5, -2.5, 3.5, -2.5);
+    g.lineStyle(1, COL.ink, 1);
+    g.lineBetween(0, -8.5, -3.5, -2.5); g.lineBetween(-3.5, -2.5, 3.5, -2.5); g.lineBetween(3.5, -2.5, 0, -8.5);
+  },
+
+GameScene.prototype.drawAnimalG = function(g){
+    g.clear();
+    g.fillStyle(COL.ink, 0.12); wobEllipse(g, 0, 4, 8, 3.5, 0.6); g.fillPath();
+    // tail
+    g.lineStyle(1.6, 0x6a4a2a, 1); g.lineBetween(0, 6, 1, 10);
+    // body
+    g.fillStyle(0x8a6a4a, 1); wobEllipse(g, 0, 1, 7, 5.5, 0.8); g.fillPath();
+    g.lineStyle(1.2, COL.ink, 1); wobEllipse(g, 0, 1, 7, 5.5, 0.8); g.strokePath();
+    // head + ears
+    g.fillStyle(0x8a6a4a, 1); g.fillCircle(0, -6, 3.8);
+    g.lineStyle(1.1, COL.ink, 1); g.strokeCircle(0, -6, 3.8);
+    g.fillStyle(0x6a4a2a, 1);
+    g.fillCircle(-2.6, -9, 1.5); g.fillCircle(2.6, -9, 1.5);
+    g.fillStyle(COL.ink, 1);
+    g.fillCircle(-1.4, -6.5, 0.8); g.fillCircle(1.4, -6.5, 0.8);
+  },
+
+  /* ================= spawning ================= */
+GameScene.prototype.spawnInfector = function(type){
+    var p = this.player;
+    var x,y,tries=0;
+    do { x=Math.random()*(W-100)+50; y=Math.random()*(H-100)+50; tries++; }
+    while (Phaser.Math.Distance.Between(x,y,p.x,p.y) < 420 && tries<40);
+    if (Phaser.Math.Distance.Between(x,y,p.x,p.y) < 120) return null;
+
+    var day = this.s.day;
+    var g;
+    if (type==='spider'){ g = this.add.graphics().setDepth(24); this.drawSpiderG(g); }
+    else if (type==='vomiter'){ g = this.add.graphics().setDepth(24); this.drawVomiterG(g); }
+    else if (type==='exploder'){ g = this.add.graphics().setDepth(24); this.drawExploderG(g); }
+    else { g = this.add.graphics().setDepth(25); this.drawZombieG(g); }
+    g.x = x; g.y = y;
+    this.physics.add.existing(g);
+    var er = type==='vomiter' ? 11 : 9;
+    g.body.setCircle(er, -er, -er); // centered on the (unsized) graphics object
+    g.body.setCollideWorldBounds(true);
+    this.physics.add.collider(g, this.trees);
+    this.physics.add.collider(g, this.rocks);
+
+    var e = { g:g, type:type, active:true };
+    var hp;
+    if (type==='spider')      hp = BAL.spider.hp + (day-1)*BAL.spider.hpPerDay;
+    else if (type==='vomiter') hp = BAL.vomiter.hp + (day-1)*BAL.vomiter.hpPerDay;
+    else if (type==='exploder') hp = BAL.exploder.hp + (day-1)*BAL.exploder.hpPerDay;
+    else hp = BAL.zombie.hp + (day-1)*BAL.zombie.hpPerDay;
+    e.hp = hp; e.hpMax = hp;
+
+    if (type==='zombie')   e.spd = BAL.zombie.spd + Math.random()*BAL.zombie.spdRnd + (day-1)*BAL.zombie.spdPerDay;
+    else if (type==='spider') e.spd = BAL.spider.spd + Math.random()*BAL.spider.spdRnd + (day-1)*BAL.spider.spdPerDay;
+    else if (type==='vomiter') e.spd = BAL.vomiter.spd;
+    else e.spd = BAL.exploder.spd + Math.random()*BAL.exploder.spdRnd;
+
+    e.atkCd = 0; e.flash = 0; e.prime = 0; e.wt = 0; e.dir = Math.random()*Math.PI*2;
+    e.hpBg = this.add.rectangle(x, y-18, 22, 3.5, 0x17140f, 0.9).setStrokeStyle(1, COL.ink).setDepth(26);
+    e.hpFg = this.add.rectangle(x-11, y-18, 22, 2, COL.blood, 1).setOrigin(0, 0.5).setDepth(27);
+    e.hpBg.setVisible(false); e.hpFg.setVisible(false);
+    e.flashG = this.add.circle(x, y, er, 0xffc9b0, 0).setDepth(24);
+    e.flashG.setVisible(false);
+    this.enemies.push(e);
+    return e;
+  },
+
+GameScene.prototype.spawnAnimal = function(){
+    var p = this.player;
+    var x,y,tries=0;
+    do { x=Math.random()*(W-100)+50; y=Math.random()*(H-100)+50; tries++; }
+    while (Phaser.Math.Distance.Between(x,y,p.x,p.y) < 280 && tries<30);
+    var g = this.add.graphics().setDepth(22);
+    this.drawAnimalG(g);
+    g.x = x; g.y = y;
+    this.physics.add.existing(g);
+    g.body.setCircle(8, -8, -8); // centered on the (unsized) graphics object
+    g.body.setCollideWorldBounds(true);
+    this.physics.add.collider(g, this.trees);
+    this.physics.add.collider(g, this.rocks);
+    var e = { g:g, type:'animal', active:true, hp:BAL.animal.hp, hpMax:BAL.animal.hp,
+      spd:0, atkCd:0, flash:0, wt:0, dir:Math.random()*Math.PI*2 };
+    e.hpBg = this.add.rectangle(x, y-16, 18, 3, 0x17140f, 0.9).setDepth(26);
+    e.hpFg = this.add.rectangle(x-9, y-16, 18, 2, COL.herb, 1).setOrigin(0, 0.5).setDepth(27);
+    e.hpBg.setVisible(false); e.hpFg.setVisible(false);
+    e.flashG = this.add.circle(x, y, 8, 0xffc9b0, 0).setDepth(21);
+    e.flashG.setVisible(false);
+    this.enemies.push(e);
+    return e;
+  },
+
+  /* ================= combat ================= */
+GameScene.prototype.attack = function(){
+    if (!this.s.alive) return;
+    var c = Math.min(this.chargeTime, BAL.chargeMax) / BAL.chargeMax; // 0..1
+    var ang = this.aimAng;
+    var dx = Math.cos(ang), dy = Math.sin(ang);
+
+    if (this.s.weapon === 'knife'){
+      if (this.attackCD > 0) { this.aimG.clear(); return; }
+      var kf = BAL.knife;
+      var dmg = kf.dmgMin + (kf.dmgMax-kf.dmgMin)*c;
+      var range = kf.rangeMin + (kf.rangeMax-kf.rangeMin)*c;
+      var arc = kf.arcMin + kf.arcGrow*c;
+      this.melee(ang, range, arc, dmg);
+      this.slashFx(ang, range);
+      SFX.swing();
+      this.attackCD = kf.cd;
+    } else {
+      if (this.attackCD > 0) { this.aimG.clear(); return; }
+      if (this.s.arrows <= 0){ this.msg('Out of arrows! Press R to craft.'); this.aimG.clear(); return; }
+      this.s.arrows--;
+      var bf = BAL.bow;
+      var dmg2 = bf.dmgMin + (bf.dmgMax-bf.dmgMin)*c;
+      var spd = bf.spdMin + (bf.spdMax-bf.spdMin)*c;
+      this.shootArrow(dx, dy, spd, dmg2);
+      SFX.arrowShoot();
+      this.attackCD = bf.cd;
+    }
+    this.aimG.clear();
+  },
+
+GameScene.prototype.melee = function(ang, range, arc, dmg){
+    var px = this.player.x, py = this.player.y;
+    var i, e, ex, ey, dist, a, diff;
+    for (i=0;i<this.enemies.length;i++){
+      e = this.enemies[i];
+      if (!e.active) continue;
+      ex = e.g.x - px; ey = e.g.y - py;
+      dist = Math.hypot(ex,ey);
+      if (dist > range + 12) continue;
+      a = Math.atan2(ey,ex);
+      diff = Math.abs(Math.atan2(Math.sin(a-ang), Math.cos(a-ang)));
+      if (diff < arc/2 + 0.12) this.hitEnemy(e, dmg);
+    }
+    for (i=0;i<this.resources.length;i++){
+      var r = this.resources[i];
+      if (!r.active) continue;
+      ex = r.x - px; ey = r.y - py;
+      dist = Math.hypot(ex,ey);
+      if (dist > range + 16) continue;
+      a = Math.atan2(ey,ex);
+      diff = Math.abs(Math.atan2(Math.sin(a-ang), Math.cos(a-ang)));
+      if (diff < arc/2 + 0.15) this.harvest(r);
+    }
+  },
+
+GameScene.prototype.shootArrow = function(dx, dy, spd, dmg){
+    var a = this.add.graphics().setDepth(40);
+    a.lineStyle(2, COL.ink, 1); a.lineBetween(-9, 0, 6, 0);
+    a.fillStyle(COL.ink, 1); a.fillTriangle(6, -2.8, 6, 2.8, 13, 0);
+    a.lineStyle(1.2, COL.wood, 1);
+    a.lineBetween(-9, -1, -13, -3.5); a.lineBetween(-9, 1, -13, 3.5);
+    a.x = this.player.x + dx*20; a.y = this.player.y + dy*20;
+    a.rotation = Math.atan2(dy, dx);
+    this.physics.add.existing(a);
+    a.body.setCircle(4, -4, -4); // centered on the (unsized) graphics object
+    a.body.setVelocity(dx*spd, dy*spd);
+    a.body.setCollideWorldBounds(true);
+    this.physics.add.collider(a, this.trees);
+    this.physics.add.collider(a, this.rocks);
+    a.dmg = dmg; a.life = BAL.bow.arrowLife;
+    this.arrows.push(a);
+  },
+
+GameScene.prototype.hitEnemy = function(e, dmg, kx, ky){
+    if (!e.active) return;
+    e.hp -= dmg;
+    e.flash = 0.12;
+    this.blood(e.g.x, e.g.y, 5);
+    if (e.type !== 'animal') SFX.hit(); else SFX.arrowHit();
+    var b = e.g.body;
+    if (b){
+      if (kx!=null) b.setVelocity(kx, ky);
+      else {
+        var ang = Math.atan2(e.g.y - this.player.y, e.g.x - this.player.x);
+        b.setVelocity(Math.cos(ang)*170, Math.sin(ang)*170);
+      }
+    }
+    e.hpBg.setVisible(true); e.hpFg.setVisible(true);
+    e.hpFg.width = Math.max(0, (e.hp/e.hpMax)*22);
+    if (e.hp <= 0) this.killEnemy(e);
+  },
+
+GameScene.prototype.killEnemy = function(e){
+    if (!e.active) return;
+    e.active = false;
+    var x = e.g.x, y = e.g.y;
+    this.blood(x, y, 10);
+    var i = this.enemies.indexOf(e);
+    if (i > -1) this.enemies.splice(i, 1);
+    if (e.hpBg) e.hpBg.destroy();
+    if (e.hpFg) e.hpFg.destroy();
+    if (e.flashG) e.flashG.destroy();
+    e.g.destroy();
+
+    if (e.type === 'zombie'){
+      this.s.kills++; SFX.die();
+      if (Math.random() < 0.45){
+        var n = 1 + Math.floor(Math.random()*3);
+        this.s.zcoins += n; this.popup(x, y-16, '+'+n+' Z-coin', COL.amber); SFX.coin();
+      }
+      if (Math.random() < 0.35){ this.s.meat++; this.popup(x, y-28, '+1 meat', COL.blood); }
+    } else if (e.type === 'spider'){
+      this.s.kills++; SFX.die();
+      if (Math.random() < 0.2){ this.s.zcoins++; this.popup(x, y-16, '+1 Z-coin', COL.amber); }
+    } else if (e.type === 'vomiter'){
+      this.s.kills++; SFX.die();
+      if (Math.random() < 0.3){
+        var n2 = 1 + Math.floor(Math.random()*2);
+        this.s.zcoins += n2; this.popup(x, y-16, '+'+n2+' Z-coin', COL.amber);
+      }
+    } else if (e.type === 'exploder'){
+      this.s.kills++;
+      this.explode(x, y);
+    } else if (e.type === 'animal'){
+      this.s.meat += BAL.animal.meat;
+      this.popup(x, y-14, '+'+BAL.animal.meat+' meat', COL.blood);
+      SFX.pickup();
+      var self = this;
+      this.time.delayedCall(BAL.animal.respawnMs, function(){
+        if (self.s && self.s.alive && self.countAnimals() < BAL.animal.maxN) self.spawnAnimal();
+      });
+    }
+  },
+
+GameScene.prototype.explode = function(x, y){
+    SFX.boom();
+    this.cameras.main.shake(260, 0.012);
+    this.explosionFx(x, y, BAL.exploder.boomR);
+    var p = this.player;
+    var d = Phaser.Math.Distance.Between(x, y, p.x, p.y);
+    if (d < BAL.exploder.boomR){
+      var t = 1 - d/BAL.exploder.boomR;
+      var dmg = BAL.exploder.boomDmgMin + (BAL.exploder.boomDmg - BAL.exploder.boomDmgMin)*t;
+      this.damagePlayer(dmg);
+    }
+    // friendly fire — other infected get blown away
+    for (var i=0;i<this.enemies.length;i++){
+      var e = this.enemies[i];
+      if (!e.active) continue;
+      var d2 = Phaser.Math.Distance.Between(x, y, e.g.x, e.g.y);
+      if (d2 < BAL.exploder.boomR){
+        var ang = Math.atan2(e.g.y - y, e.g.x - x);
+        this.hitEnemy(e, 30, Math.cos(ang)*320, Math.sin(ang)*320);
+      }
+    }
+  },
+
+GameScene.prototype.damagePlayer = function(d){
+    if (!this.s.alive) return;
+    this.s.hp -= d;
+    SFX.hurt();
+    this.cameras.main.shake(130, 0.006);
+    var f = this.add.rectangle(0, 0, this.scale.width, this.scale.height, COL.blood, 0.22)
+      .setScrollFactor(0).setDepth(1000);
+    this.tweens.add({ targets:f, alpha:0, duration:320, onComplete:function(){ f.destroy(); } });
+    this.blood(this.player.x, this.player.y, 3);
+  },
+
+GameScene.prototype.applyPoison = function(){
+    this.s.poison = BAL.spider.poisonT;
+    this.popup(this.player.x, this.player.y - 22, 'POISONED!', COL.acid);
+    SFX.poison();
+  },
+
+  /* ================= gathering / crafting ================= */
+GameScene.prototype.harvest = function(r){
+    var self = this;
+    if (r.rtype === 'wood'){ this.s.wood++; this.popup(r.x, r.y-14, '+1 wood', COL.wood); }
+    else { this.s.herbs++; this.popup(r.x, r.y-14, '+1 herb', COL.herb); }
+    SFX.pickup();
+    this.spark(r.x, r.y, r.rtype==='wood' ? COL.wood : COL.herb);
+    r.uses--;
+    if (r.uses <= 0){
+      var i = this.resources.indexOf(r);
+      if (i > -1) this.resources.splice(i, 1);
+      r.destroy();
+      this.time.delayedCall(BAL.resource.respawnMs, function(){
+        if (self.s && self.s.alive) self.makeResource(r.rtype);
+      });
+    }
+  },
+
+GameScene.prototype.lootCrate = function(c){
+    c.looted = true;
+    c.setAlpha(0.35);
+    var r = Math.random();
+    if (r < 0.25){ this.s.arrows += 5; this.msg('Found 5 arrows!'); }
+    else if (r < 0.5){ this.s.wood += 3; this.msg('Found 3 wood!'); }
+    else if (r < 0.7){ this.s.meat += 1; this.msg('Found canned meat!'); }
+    else if (r < 0.88){ this.s.herbs += 2; this.msg('Found 2 herbs!'); }
+    else { this.s.zcoins += 10; this.msg('Found 10 Z-Coins!'); SFX.coin(); return; }
+    SFX.pickup();
+    this.spark(c.x, c.y, 0xcccccc);
+    var self = this;
+    this.time.delayedCall(BAL.crate.respawnMs, function(){
+      if (self.s && self.s.alive) self.makeCrate();
+    });
+  },
+
+GameScene.prototype.useShelter = function(){
+    var did = [];
+    if (this.s.meat > 0 && this.s.hunger < this.s.hungerMax){
+      this.s.meat--; this.s.hunger = Math.min(this.s.hungerMax, this.s.hunger + 40);
+      did.push('Cooked meat (+40 hunger)'); SFX.eat();
+    }
+    if (this.s.herbs >= 2 && this.s.hp < this.s.hpMax){
+      this.s.herbs -= 2; this.s.hp = Math.min(this.s.hpMax, this.s.hp + 30);
+      did.push('Made medicine (+30 HP)'); SFX.heal();
+    }
+    this.s.hp = Math.min(this.s.hpMax, this.s.hp + BAL.shelter.restHp);
+    this.s.stamina = this.s.staminaMax;
+    this.s.poison = 0;
+    if (!did.length){ this.msg('You rest at the shelter. (meat → food, 2 herbs → medicine)'); SFX.heal(); }
+    else { this.msg(did.join(' · ')); }
+  },
+
+GameScene.prototype.craftArrows = function(){
+    if (this.s.wood >= 1){
+      this.s.wood--; this.s.arrows += 5;
+      this.msg('Crafted 5 arrows.'); SFX.craft();
+    } else this.msg('Need 1 wood for arrows.');
+  },
+
+GameScene.prototype.switchWeapon = function(w){
+    if (this.s.weapon === w) return;
+    this.s.weapon = w;
+    this.charging = false;
+    this.aimG.clear();
+    this.msg(w === 'knife' ? 'Knife equipped' : 'Bow equipped');
+    SFX.ui();
+  },
+
+GameScene.prototype.interact = function(){
+    var self = this;
+    var near = this.nearCrate();
+    if (near && !near.looted){ this.lootCrate(near); return; }
+    if (this.inShelter()){ this.useShelter(); return; }
+  },
+
+GameScene.prototype.nearCrate = function(){
+    for (var i=0;i<this.crates.length;i++){
+      var c = this.crates[i];
+      if (c.looted) continue;
+      if (Phaser.Math.Distance.Between(this.player.x, this.player.y, c.x, c.y) < BAL.crate.lootR) return c;
+    }
+    return null;
+  },
+
+GameScene.prototype.inShelter = function(){
+    return Phaser.Math.Distance.Between(this.player.x, this.player.y, this.sx, this.sy) < this.sr;
+  },
+
+GameScene.prototype.countAnimals = function(){
+    var n = 0;
+    for (var i=0;i<this.enemies.length;i++) if (this.enemies[i].type==='animal' && this.enemies[i].active) n++;
+    return n;
+  },
+GameScene.prototype.countInfected = function(){
+    var n = 0;
+    for (var i=0;i<this.enemies.length;i++) if (this.enemies[i].type!=='animal' && this.enemies[i].active) n++;
+    return n;
+  },
+GameScene.prototype.countType = function(t){
+    var n = 0;
+    for (var i=0;i<this.enemies.length;i++) if (this.enemies[i].type===t && this.enemies[i].active) n++;
+    return n;
+  },
+
+  /* ================= fx ================= */
+GameScene.prototype.blood = function(x, y, n){
+    for (var i=0;i<n;i++){
+      var b = this.add.circle(
+        x + (Math.random()-0.5)*18, y + (Math.random()-0.5)*18,
+        1 + Math.random()*2.2, COL.blood, 0.92).setDepth(42);
+      this.tweens.add({ targets:b, alpha:0, scale:0.3, y:b.y + 5,
+        duration: 550 + Math.random()*350, onComplete:function(t){ t.destroy(); } });
+    }
+  },
+GameScene.prototype.spark = function(x, y, c){
+    for (var i=0;i<5;i++){
+      var s = this.add.rectangle(x + (Math.random()-0.5)*14, y + (Math.random()-0.5)*14, 3, 3, c, 0.9).setDepth(42);
+      this.tweens.add({ targets:s, alpha:0, y:s.y - 12, duration:420,
+        onComplete:function(t){ t.destroy(); } });
+    }
+  },
+GameScene.prototype.popup = function(x, y, t, c){
+    var tx = this.add.text(x, y, t, {font:'10px Courier', color:'#'+c.toString(16).padStart(6,'0')})
+      .setOrigin(0.5).setDepth(43).setStroke('#111', 2);
+    this.tweens.add({ targets:tx, y:y-26, alpha:0, duration:1000,
+      onComplete:function(t){ t.destroy(); } });
+  },
+GameScene.prototype.slashFx = function(ang, range){
+    var g = this.add.graphics().setDepth(45);
+    g.lineStyle(3, COL.ink, 0.6);
+    g.beginPath(); g.arc(this.player.x, this.player.y, range*0.85, ang-0.55, ang+0.55); g.strokePath();
+    g.lineStyle(2, COL.blood, 0.45);
+    g.beginPath(); g.arc(this.player.x, this.player.y, range*0.72, ang-0.4, ang+0.4); g.strokePath();
+    this.tweens.add({ targets:g, alpha:0, duration:240, onComplete:function(t){ t.destroy(); } });
+  },
+GameScene.prototype.explosionFx = function(x, y, r){
+    var g = this.add.graphics().setDepth(44);
+    g.lineStyle(4, COL.amber, 0.9); wobPath(g, x, y, r*0.55, 4); g.strokePath();
+    g.lineStyle(2, COL.ink, 0.7); wobPath(g, x, y, r*0.8, 5); g.strokePath();
+    this.tweens.add({ targets:g, alpha:0, scale:1.6, duration:380,
+      onComplete:function(t){ t.destroy(); } });
+    for (var i=0;i<10;i++){
+      var c = this.add.circle(x + (Math.random()-0.5)*r, y + (Math.random()-0.5)*r,
+        2 + Math.random()*3, COL.amber, 0.95).setDepth(42);
+      this.tweens.add({ targets:c, alpha:0, scale:0.2, duration:500,
+        onComplete:function(t){ t.destroy(); } });
+    }
+    for (var j=0;j<8;j++){
+      var s = this.add.circle(x + (Math.random()-0.5)*r*1.4, y + (Math.random()-0.5)*r*1.4,
+        2.5 + Math.random()*3, 0x3a3a38, 0.6).setDepth(41);
+      this.tweens.add({ targets:s, alpha:0, y:s.y - 20, duration:800,
+        onComplete:function(t){ t.destroy(); } });
+    }
+  },
+GameScene.prototype.acidPuff = function(x, y){
+    for (var i=0;i<4;i++){
+      var c = this.add.circle(x + (Math.random()-0.5)*10, y + (Math.random()-0.5)*10,
+        1.5 + Math.random()*2, COL.acid, 0.85).setDepth(42);
+      this.tweens.add({ targets:c, alpha:0, duration:450, onComplete:function(t){ t.destroy(); } });
+    }
+  },
+
+GameScene.prototype.msg = function(t){
+    var el = document.getElementById('msg');
+    el.textContent = t;
+    el.style.opacity = '1';
+    this.s.msgT = 2.4;
+  },
+
+  /* ================= mobile ================= */
+GameScene.prototype.setupMobile = function(){
+    var self = this;
+    var zone = document.getElementById('stick-zone');
+    var base = document.getElementById('stick-base');
+    var knob = document.getElementById('stick-knob');
+    var sx=0, sy=0, pid=null;
+
+    function show(x, y){
+      base.style.display='block'; knob.style.display='block';
+      base.style.left=(x-58)+'px'; base.style.top=(y-58)+'px';
+      move(x, y);
+    }
+    function move(x, y){
+      var dx = x-sx, dy = y-sy;
+      var d = Math.hypot(dx, dy);
+      var max = 52;
+      if (d > max){ dx = dx/d*max; dy = dy/d*max; }
+      knob.style.left = (sx + dx - 26)+'px';
+      knob.style.top = (sy + dy - 26)+'px';
+      self.stick.x = dx/max; self.stick.y = dy/max; self.stick.active = true;
+    }
+    function hide(){
+      base.style.display='none'; knob.style.display='none';
+      self.stick.x = 0; self.stick.y = 0; self.stick.active = false; pid = null;
+    }
+    zone.style.pointerEvents = 'auto';
+    zone.addEventListener('pointerdown', function(e){
+      if (pid !== null) return;
+      pid = e.pointerId;
+      zone.setPointerCapture(pid);
+      sx = e.clientX; sy = e.clientY;
+      show(e.clientX, e.clientY);
+      e.preventDefault();
+    });
+    zone.addEventListener('pointermove', function(e){
+      if (e.pointerId !== pid) return;
+      move(e.clientX, e.clientY);
+      e.preventDefault();
+    });
+    ['pointerup','pointercancel'].forEach(function(ev){
+      zone.addEventListener(ev, function(e){ if (e.pointerId === pid) hide(); });
+    });
+
+    function bindBtn(id, down, up){
+      var el = document.getElementById(id);
+      el.addEventListener('pointerdown', function(e){
+        e.preventDefault(); SFX.resume();
+        try { el.setPointerCapture(e.pointerId); } catch(err){}
+        if (down) down();
+      });
+      if (up) el.addEventListener('pointerup', function(e){ e.preventDefault(); up(); });
+      if (up) el.addEventListener('pointercancel', function(){ up(); });
+    }
+    bindBtn('mb-attack',
+      function(){ self.charging = true; self.chargeTime = 0; },
+      function(){ if (self.charging){ self.charging = false; self.attack(); } });
+    bindBtn('mb-e', function(){ self.interact(); });
+    bindBtn('mb-1', function(){ self.switchWeapon('knife'); });
+    bindBtn('mb-2', function(){ self.switchWeapon('bow'); });
+    bindBtn('mb-r', function(){ self.craftArrows(); });
+    bindBtn('mb-pause', function(){ self.togglePause(); });
+  },
+
+  /* ================= pause / death ================= */
+GameScene.prototype.togglePause = function(){
+    if (!this.s.alive) return;
+    if (this.s.paused){ this.resumeGame(); } else { this.pauseGame(); }
+  },
+GameScene.prototype.pauseGame = function(){
+    if (this.s.paused || !this.s.alive) return;
+    this.s.paused = true;
+    this.scene.pause();
+    document.getElementById('pauseov').style.display = 'flex';
+  },
+GameScene.prototype.resumeGame = function(){
+    this.s.paused = false;
+    this.scene.resume();
+    document.getElementById('pauseov').style.display = 'none';
+  },
+
+GameScene.prototype.shutdown = function(){
+    if (this._winUp){
+      window.removeEventListener('pointerup', this._winUp);
+      this._winUp = null;
+    }
+  },
+
+GameScene.prototype.gameOver = function(){
+    if (!this.s.alive) return;
+    this.s.alive = false;
+    this.charging = false;
+    SFX.death();
+    this.cameras.main.shake(400, 0.012);
+    Store.clearSave();
+    var hi = Store.loadHi() || { day:0, kills:0 };
+    var newBest = false;
+    if (this.s.day > hi.day || (this.s.day === hi.day && this.s.kills > hi.kills)){
+      hi = { day:this.s.day, kills:this.s.kills };
+      Store.saveHi(hi);
+      newBest = true;
+    }
+    document.getElementById('g-days').textContent = this.s.day;
+    document.getElementById('g-kills').textContent = this.s.kills;
+    document.getElementById('g-best').textContent =
+      (newBest ? '★ NEW BEST!  ' : 'Best: ') + 'Day ' + hi.day + ' · ' + hi.kills + ' kills';
+    var self = this;
+    this.time.delayedCall(900, function(){
+      document.getElementById('go').style.display = 'flex';
+      self.scene.pause();
+    });
+  },
+
+  /* ================= update ================= */
+GameScene.prototype.update = function(_, dtMs){
+    if (!this.s || this.s.paused) return;
+    var dt = Math.min(dtMs/1000, 0.05);
+    try { this._update(dt); }
+    catch(err){
+      console.error('[GRISPEN] update error:', err);
+      var el = document.getElementById('err');
+      el.style.display = 'block';
+      el.textContent = 'UPDATE ERROR: ' + err.message + '\n' + err.stack;
+    }
+  },
+
+GameScene.prototype._update = function(dt){
+    var s = this.s, p = this.player;
+    if (!s.alive) return;
+
+    if (s.msgT > 0){
+      s.msgT -= dt;
+      if (s.msgT <= 0) document.getElementById('msg').style.opacity = '0';
+    }
+    if (this.attackCD > 0) this.attackCD -= dt;
+
+    /* ---- movement ---- */
+    var vx = 0, vy = 0;
+    if (this.stick.active){ vx = this.stick.x; vy = this.stick.y; }
+    else {
+      if (this.keys.W.isDown || this.keys.UP.isDown) vy -= 1;
+      if (this.keys.S.isDown || this.keys.DOWN.isDown) vy += 1;
+      if (this.keys.A.isDown || this.keys.LEFT.isDown) vx -= 1;
+      if (this.keys.D.isDown || this.keys.RIGHT.isDown) vx += 1;
+    }
+    var m = Math.hypot(vx, vy);
+    if (m > 1){ vx/=m; vy/=m; m = 1; }
+    var wantSprint = IS_TOUCH ? (m >= 0.85) : (this.keys.SHIFT.isDown && m > 0);
+    var canSprint = wantSprint && s.stamina > 4;
+    var spd = canSprint ? BAL.player.sprint : BAL.player.walk;
+    p.body.setVelocity(vx*spd, vy*spd);
+
+    if (canSprint && m > 0) s.stamina -= BAL.player.staminaDrain*dt;
+    else s.stamina = Math.min(s.staminaMax, s.stamina + (m > 0 ? BAL.player.staminaWalk : BAL.player.staminaIdle)*dt);
+    if (s.stamina < 0) s.stamina = 0;
+
+    /* ---- aim ---- */
+    if (IS_TOUCH){
+      var best = null, bestD = 320;
+      for (var ai=0;ai<this.enemies.length;ai++){
+        var ae = this.enemies[ai];
+        if (!ae.active) continue;
+        var ad = Phaser.Math.Distance.Between(p.x, p.y, ae.g.x, ae.g.y);
+        if (ad < bestD){ bestD = ad; best = ae; }
+      }
+      if (best) this.aimAng = Math.atan2(best.g.y - p.y, best.g.x - p.x);
+      else if (m > 0.1) this.aimAng = Math.atan2(vy, vx);
+    } else {
+      var wp = this.cameras.main.getWorldPoint(this.input.x, this.input.y);
+      this.aimAng = Math.atan2(wp.y - p.y, wp.x - p.x);
+    }
+
+    /* ---- direction marker + weapon ---- */
+    var a = this.aimAng;
+    this.dirG.clear();
+    this.dirG.fillStyle(COL.blood, 0.9);
+    this.dirG.fillTriangle(
+      p.x + Math.cos(a)*26, p.y + Math.sin(a)*26,
+      p.x + Math.cos(a+2.7)*13, p.y + Math.sin(a+2.7)*13,
+      p.x + Math.cos(a-2.7)*13, p.y + Math.sin(a-2.7)*13
+    );
+    var wg = this.weaponG;
+    wg.clear();
+    if (s.weapon === 'knife'){
+      wg.lineStyle(2.5, 0x2a2a2a, 1); wg.lineBetween(5, 5, 13, 5);
+      wg.fillStyle(0xb8b8b0, 1); wg.fillTriangle(13, 2.4, 13, 7.6, 23, 5);
+      wg.lineStyle(1, COL.ink, 1);
+      wg.lineBetween(13, 2.4, 23, 5); wg.lineBetween(23, 5, 13, 7.6);
+      wg.fillStyle(COL.blood, 0.9); wg.fillTriangle(20, 4, 20, 6, 23, 5);
+    } else {
+      wg.lineStyle(2.2, 0x5a3a1a, 1);
+      wg.beginPath(); wg.arc(8, 0, 10, -1.05, 1.05); wg.strokePath();
+      var ax1 = 8 + Math.cos(-1.05)*10, ay1 = Math.sin(-1.05)*10;
+      var ax2 = 8 + Math.cos(1.05)*10,  ay2 = Math.sin(1.05)*10;
+      wg.lineStyle(1, COL.ink, 0.8); wg.lineBetween(ax1, ay1, ax2, ay2);
+      if (s.arrows > 0){
+        wg.lineStyle(1.4, COL.ink, 0.7);
+        wg.lineBetween(ax1, ay1, ax1 + (ax2-ax1)*0.9, ay1 + (ay2-ay1)*0.9);
+      }
+    }
+    wg.x = p.x; wg.y = p.y; wg.rotation = a;
+
+    /* ---- poison indicator ---- */
+    if (s.poison > 0){
+      s.poison -= dt;
+      s.hp -= BAL.spider.poisonDps*dt;
+      this.poisonG.clear();
+      this.poisonG.fillStyle(COL.acid, 0.9);
+      this.poisonG.fillCircle(p.x + 14, p.y - 14, 2.2);
+      this.poisonG.fillCircle(p.x + 19, p.y - 9, 1.6);
+      this.poisonG.fillCircle(p.x + 12, p.y - 8, 1.4);
+      if (s.poison <= 0) this.poisonG.clear();
+    } else this.poisonG.clear();
+
+    /* ---- charge cone ---- */
+    if (this.charging){
+      this.chargeTime += dt;
+      var c = Math.min(this.chargeTime, BAL.chargeMax)/BAL.chargeMax;
+      this.aimG.clear();
+      var range, arc, col;
+      if (s.weapon === 'knife'){
+        range = BAL.knife.rangeMin + (BAL.knife.rangeMax - BAL.knife.rangeMin)*c;
+        arc = BAL.knife.arcMin + BAL.knife.arcGrow*c;
+        col = COL.blood;
+      } else {
+        range = 230 + 50*c;
+        arc = 0.30 - 0.12*c;
+        col = COL.amber;
+      }
+      this.aimG.fillStyle(col, 0.20 + 0.1*c);
+      this.aimG.beginPath();
+      this.aimG.moveTo(p.x, p.y);
+      this.aimG.arc(p.x, p.y, range, a - arc, a + arc);
+      this.aimG.closePath();
+      this.aimG.fillPath();
+      this.aimG.lineStyle(2, col, 0.7);
+      this.aimG.beginPath();
+      this.aimG.moveTo(p.x, p.y);
+      this.aimG.arc(p.x, p.y, range, a - arc, a + arc);
+      this.aimG.closePath();
+      this.aimG.strokePath();
+    } else this.aimG.clear();
+
+    /* ---- enemy AI ---- */
+    var px = p.x, py = p.y;
+    for (var i=this.enemies.length-1; i>=0; i--){
+      var e = this.enemies[i];
+      if (!e.active){ this.enemies.splice(i,1); continue; }
+      var g = e.g, b = g.body;
+      if (!b || !g.active){ this.enemies.splice(i,1); continue; }
+      var v = b.velocity;
+      var knock = Math.hypot(v.x, v.y);
+
+      if (knock > 45){
+        b.setVelocity(v.x*0.9, v.y*0.9);
+      } else if (e.type === 'animal'){
+        var ax = px - g.x, ay = py - g.y;
+        var ad2 = Math.hypot(ax, ay);
+        if (ad2 < BAL.animal.fleeR && ad2 > 0.01){
+          b.setVelocity(-ax/ad2*BAL.animal.flee, -ay/ad2*BAL.animal.flee);
+        } else {
+          e.wt -= dt;
+          if (e.wt <= 0){ e.dir = Math.random()*Math.PI*2; e.wt = 1 + Math.random()*2; }
+          b.setVelocity(Math.cos(e.dir)*BAL.animal.wander, Math.sin(e.dir)*BAL.animal.wander);
+        }
+        if (knock < 30 && e.wt > 0){
+          e.dir = Math.atan2(b.velocity.y, b.velocity.x);
+        }
+      } else if (e.type === 'vomiter'){
+        var vx2 = px - g.x, vy2 = py - g.y;
+        var vd = Math.hypot(vx2, vy2) || 1;
+        if (vd > BAL.vomiter.maxR) b.setVelocity(vx2/vd*e.spd, vy2/vd*e.spd);
+        else if (vd < BAL.vomiter.minR) b.setVelocity(-vx2/vd*e.spd, -vy2/vd*e.spd);
+        else {
+          e.wt -= dt;
+          if (e.wt <= 0){ e.dir = Math.random()*Math.PI*2; e.wt = 1 + Math.random()*1.5; }
+          b.setVelocity(Math.cos(e.dir)*e.spd*0.8, Math.sin(e.dir)*e.spd*0.8);
+        }
+        e.atkCd -= dt;
+        if (e.atkCd <= 0 && vd < BAL.vomiter.maxR + 60){
+          e.atkCd = BAL.vomiter.spitCd;
+          this.shootAcid(g.x, g.y, px, py);
+          SFX.acid();
+        }
+      } else { // zombie / spider / exploder
+        var ex = px - g.x, ey = py - g.y;
+        var ed = Math.hypot(ex, ey);
+        var aggro = e.type === 'spider' ? BAL.spider.aggro : BAL.zombie.aggro;
+        if (ed < aggro && ed > 0.01){
+          b.setVelocity(ex/ed*e.spd, ey/ed*e.spd);
+        } else if (e.type !== 'exploder'){
+          e.wt -= dt;
+          if (e.wt <= 0){ e.dir = Math.random()*Math.PI*2; e.wt = 1.5 + Math.random()*2.5; }
+          b.setVelocity(Math.cos(e.dir)*12, Math.sin(e.dir)*12);
+        }
+        e.atkCd -= dt;
+        var biteR = e.type === 'spider' ? BAL.spider.range : BAL.zombie.range;
+        var biteDmg, biteCdMax;
+        if (e.type === 'spider'){ biteDmg = BAL.spider.bite; biteCdMax = BAL.spider.biteCd; }
+        else { biteDmg = BAL.zombie.bite + (s.day-1)*BAL.zombie.bitePerDay; biteCdMax = BAL.zombie.biteCd; }
+        if (ed < biteR && e.atkCd <= 0){
+          e.atkCd = biteCdMax;
+          this.damagePlayer(biteDmg);
+          if (e.type === 'spider') this.applyPoison();
+        }
+        if (e.type === 'exploder'){
+          if (ed < BAL.exploder.primeR){ e.prime += dt; }
+          else e.prime = Math.max(0, e.prime - dt*0.5);
+          if (e.prime >= BAL.exploder.primeT){
+            e.prime = 999;
+            this.killEnemy(e);
+            if (e.active) continue;
+            continue;
+          }
+        }
+      }
+
+      // face movement direction
+      var sp2 = Math.hypot(b.velocity.x, b.velocity.y);
+      if (sp2 > 15){
+        var target = Math.atan2(b.velocity.y, b.velocity.x) + Math.PI/2;
+        var cur = g.rotation;
+        var d2 = Math.atan2(Math.sin(target - cur), Math.cos(target - cur));
+        g.rotation = cur + d2 * Math.min(1, dt*10);
+      }
+      // hit flash (Graphics can't be tinted — use an overlay circle)
+      if (e.flash > 0){
+        e.flash -= dt;
+        e.flashG.setPosition(g.x, g.y);
+        if (!e.flashG.visible) e.flashG.setVisible(true);
+        e.flashG.setAlpha(0.35 + Math.random()*0.25);
+      }
+      else if (e.flashG.visible){ e.flashG.setVisible(false); }
+      // hp bars
+      if (e.hpBg){
+        e.hpBg.x = g.x; e.hpBg.y = g.y - 18;
+        e.hpFg.x = g.x - 11; e.hpFg.y = g.y - 18;
+      }
+    }
+
+    // separation (avoid stacking)
+    for (var si=0; si<this.enemies.length; si++){
+      var A = this.enemies[si];
+      if (!A.active) continue;
+      for (var sj=si+1; sj<this.enemies.length; sj++){
+        var B = this.enemies[sj];
+        if (!B.active) continue;
+        var sdx = B.g.x - A.g.x, sdy = B.g.y - A.g.y;
+        var sd = Math.hypot(sdx, sdy);
+        if (sd > 0.01 && sd < 18){
+          var push = (18 - sd) * 3;
+          A.g.body.setVelocity(A.g.body.velocity.x - sdx/sd*push, A.g.body.velocity.y - sdy/sd*push);
+          B.g.body.setVelocity(B.g.body.velocity.x + sdx/sd*push, B.g.body.velocity.y + sdy/sd*push);
+        }
+      }
+    }
+
+    /* ---- arrows ---- */
+    for (var ar2=this.arrows.length-1; ar2>=0; ar2--){
+      var ar = this.arrows[ar2];
+      if (!ar.active){ this.arrows.splice(ar2,1); continue; }
+      ar.life -= dt;
+      ar.rotation = Math.atan2(ar.body.velocity.y, ar.body.velocity.x);
+      var hit = false;
+      for (var ei=0; ei<this.enemies.length; ei++){
+        var en = this.enemies[ei];
+        if (!en.active) continue;
+        if (Phaser.Math.Distance.Between(ar.x, ar.y, en.g.x, en.g.y) < 13){
+          this.hitEnemy(en, ar.dmg);
+          hit = true; break;
+        }
+      }
+      if (hit || ar.life <= 0 || !ar.active){ ar.destroy(); this.arrows.splice(ar2, 1); }
+    }
+
+    /* ---- acid ---- */
+    for (var ac2=this.acids.length-1; ac2>=0; ac2--){
+      var ac = this.acids[ac2];
+      if (!ac.active){ this.acids.splice(ac2,1); continue; }
+      ac.life -= dt;
+      ac.rotation += dt*6;
+      if (Phaser.Math.Distance.Between(ac.x, ac.y, p.x, p.y) < 14){
+        this.damagePlayer(BAL.vomiter.acidDmg);
+        this.acidPuff(ac.x, ac.y);
+        ac.destroy(); this.acids.splice(ac2,1); continue;
+      }
+      if (ac.life <= 0){ this.acidPuff(ac.x, ac.y); ac.destroy(); this.acids.splice(ac2,1); }
+    }
+
+    /* ---- shelter / interact targets ---- */
+    var inS = this.inShelter();
+    if (inS) s.hp = Math.min(s.hpMax, s.hp + BAL.shelter.healDps*dt);
+
+    /* ---- hotkeys ---- */
+    if (Phaser.Input.Keyboard.JustDown(this.keys.E)) this.interact();
+    if (Phaser.Input.Keyboard.JustDown(this.keys.ONE)) this.switchWeapon('knife');
+    if (Phaser.Input.Keyboard.JustDown(this.keys.TWO)) this.switchWeapon('bow');
+    if (Phaser.Input.Keyboard.JustDown(this.keys.R)) this.craftArrows();
+    if (Phaser.Input.Keyboard.JustDown(this.keys.P) || Phaser.Input.Keyboard.JustDown(this.keys.ESC)) this.togglePause();
+    if (Phaser.Input.Keyboard.JustDown(this.keys.M)){
+      SFX.muted = !SFX.muted;
+      this.msg(SFX.muted ? 'Sound OFF' : 'Sound ON');
+    }
+
+    /* ---- survival ---- */
+    s.hunger -= BAL.player.hungerDecay*dt;
+    if (s.hunger <= 0){ s.hunger = 0; s.hp -= BAL.player.starveDps*dt; }
+    else if (s.hunger > 40 && !inS) s.hp = Math.min(s.hpMax, s.hp + BAL.player.regenFed*dt);
+
+    /* ---- day cycle ---- */
+    s.dayT += dt;
+    if (s.dayT >= BAL.day.seconds){
+      s.dayT = 0;
+      s.day++;
+      this.msg('Day ' + s.day + ' — the infected grow restless...');
+      SFX.day();
+      this.doSave();
+    }
+    // spawn pressure
+    s.zspT -= dt;
+    if (s.zspT <= 0){
+      var maxZ = BAL.day.baseZombies + BAL.day.perDay*s.day;
+      if (this.countInfected() < maxZ) this.spawnInfector(this.pickType());
+      s.zspT = Math.max(BAL.day.spawnMin, BAL.day.spawnStart - BAL.day.spawnRamp*(s.day-1));
+    }
+    // ambient groans
+    s.groanT -= dt;
+    if (s.groanT <= 0){
+      s.groanT = 3 + Math.random()*5;
+      var any = false;
+      for (var gi=0; gi<this.enemies.length; gi++){
+        var ge = this.enemies[gi];
+        if (ge.type==='zombie' && Phaser.Math.Distance.Between(p.x, p.y, ge.g.x, ge.g.y) < 650){ any = true; break; }
+      }
+      if (any) SFX.groan();
+    }
+    // autosave
+    s.saveT -= dt;
+    if (s.saveT <= 0){ s.saveT = 5; this.doSave(); }
+
+    /* ---- night tint ---- */
+    var phase = s.dayT / BAL.day.seconds; // 0..1
+    var night = (Math.sin(phase*Math.PI*2 - Math.PI/2) + 1) / 2; // 0 day → 1 night
+    this.nightG.alpha = 0.16 * night;
+    this.nightG.setSize(this.scale.width, this.scale.height);
+    this.nightG.setPosition(0,0);
+
+    if (s.hp <= 0){ this.gameOver(); return; }
+
+    this.updateHUD(inS, night);
+    this.updateMM();
+  },
+
+GameScene.prototype.pickType = function(){
+    var d = this.s.day, r = Math.random();
+    if (d >= 4 && r < 0.10 && this.countType('exploder') < BAL.exploder.maxN) return 'exploder';
+    if (d >= 3 && r < 0.22 && this.countType('vomiter') < BAL.vomiter.maxN) return 'vomiter';
+    if (d >= 2 && r < 0.38 && this.countType('spider') < BAL.spider.maxN) return 'spider';
+    return 'zombie';
+  },
+
+GameScene.prototype.shootAcid = function(x, y, tx, ty){
+    var d = Math.hypot(tx-x, ty-y) || 1;
+    var a = this.add.circle(x + (tx-x)/d*14, y + (ty-y)/d*14, 5.5, COL.acid, 0.95).setDepth(36);
+    a.setStrokeStyle(1.5, COL.ink, 0.8);
+    a.x = x + (tx-x)/d*14; a.y = y + (ty-y)/d*14;
+    this.physics.add.existing(a);
+    a.body.setCircle(5);
+    a.body.setVelocity((tx-x)/d*BAL.vomiter.acidSpd, (ty-y)/d*BAL.vomiter.acidSpd);
+    a.body.setCollideWorldBounds(true);
+    this.physics.add.collider(a, this.trees);
+    this.physics.add.collider(a, this.rocks);
+    a.life = BAL.vomiter.acidLife;
+    this.acids.push(a);
+  },
+
+  /* ================= HUD / minimap ================= */
+GameScene.prototype.updateHUD = function(inS, night){
+    var s = this.s;
+    document.getElementById('b-hp').style.width = Math.max(0, s.hp/s.hpMax*100) + '%';
+    document.getElementById('b-hu').style.width = Math.max(0, s.hunger/s.hungerMax*100) + '%';
+    document.getElementById('b-st').style.width = Math.max(0, s.stamina/s.staminaMax*100) + '%';
+    document.getElementById('d-day').textContent = s.day;
+    document.getElementById('d-kill').textContent = s.kills;
+    var st = document.getElementById('d-state');
+    st.textContent = inS ? 'shelter' : (night > 0.55 ? 'NIGHT' : 'day');
+    st.style.color = inS ? '#6a8a4a' : (night > 0.55 ? '#8a7ab0' : '#8a8272');
+    document.getElementById('w-name').textContent = (s.weapon==='knife') ? 'Knife (melee)' : 'Bow (ranged)';
+    document.getElementById('w-ammo').textContent = (s.weapon==='knife') ? '∞' : s.arrows;
+    document.getElementById('i-w').textContent = s.wood;
+    document.getElementById('i-h').textContent = s.herbs;
+    document.getElementById('i-a').textContent = s.arrows;
+    document.getElementById('i-m').textContent = s.meat;
+    document.getElementById('i-z').textContent = s.zcoins;
+  },
+
+GameScene.prototype.updateMM = function(){
+    var c = document.getElementById('mm');
+    var ctx = c.getContext('2d');
+    var S = 130;
+    ctx.fillStyle = '#d6d0be'; ctx.fillRect(0,0,S,S);
+    // subtle paper grain
+    ctx.fillStyle = 'rgba(26,26,26,0.05)';
+    for (var i=0;i<14;i++) ctx.fillRect((i*37)%S, (i*53)%S, 1, 1);
+    var kx = S/W, ky = S/H;
+    // shelter
+    ctx.fillStyle = '#5a3a1a';
+    ctx.fillRect(S/2-4, S/2-4, 8, 8);
+    // resources
+    ctx.fillStyle = 'rgba(74,106,58,0.8)';
+    for (var ri=0;ri<this.resources.length;ri++) ctx.fillRect(this.resources[ri].x*kx-1, this.resources[ri].y*ky-1, 2, 2);
+    // crates
+    ctx.fillStyle = 'rgba(106,74,42,0.9)';
+    for (var ci=0;ci<this.crates.length;ci++){
+      if (this.crates[ci].looted) continue;
+      ctx.fillRect(this.crates[ci].x*kx-1.5, this.crates[ci].y*ky-1.5, 3, 3);
+    }
+    // infected
+    for (var ei=0;ei<this.enemies.length;ei++){
+      var e = this.enemies[ei];
+      if (!e.active) continue;
+      if (e.type==='animal') continue;
+      ctx.fillStyle = (e.type==='vomiter') ? '#6a9a2a' : (e.type==='exploder') ? '#d4a030' : '#c43a2a';
+      ctx.fillRect(e.g.x*kx-1, e.g.y*ky-1, 2.5, 2.5);
+    }
+    // player
+    ctx.fillStyle = '#1a6ad4';
+    ctx.fillRect(this.player.x*kx-2, this.player.y*ky-2, 4, 4);
+    // viewport rect
+    var cam = this.cameras.main;
+    var vw = this.scale.width / cam.zoom, vh = this.scale.height / cam.zoom;
+    ctx.strokeStyle = 'rgba(26,26,26,0.55)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(cam.scrollX*kx, cam.scrollY*ky, vw*kx, vh*ky);
+  },
+
+  /* ================= save ================= */
+GameScene.prototype.doSave = function(){
+    if (!this.s.alive) return;
+    Store.writeSave(this.player.x, this.player.y, {
+      hp:Math.round(this.s.hp), hunger:Math.round(this.s.hunger), stamina:Math.round(this.s.stamina),
+      wood:this.s.wood, herbs:this.s.herbs, arrows:this.s.arrows, meat:this.s.meat,
+      zcoins:this.s.zcoins, kills:this.s.kills, day:this.s.day
+    });
+  }
+;
+
+/* ================================================================
+   Boot / UI wiring
+   ================================================================ */
+var game = null;
+
+function showStartScreen(){
+  var ss = document.getElementById('start-screen');
+  ss.style.display = 'flex';
+  var hi = Store.loadHi();
+  document.getElementById('hi-line').textContent = hi
+    ? ('BEST SURVIVAL: Day ' + hi.day + ' · ' + hi.kills + ' kills')
+    : 'No survivors yet. Be the first.';
+  if (IS_TOUCH) document.getElementById('touch-ctrl').style.display = 'block';
+  var sv = Store.loadSave();
+  var cont = document.getElementById('cont-btn');
+  if (sv){
+    cont.style.display = 'inline-block';
+    var mins = Math.max(1, Math.round((Date.now() - sv.t)/60000));
+    var when = mins < 60 ? mins + 'm ago' : (Math.round(mins/60) + 'h ago');
+    document.getElementById('save-line').textContent = 'Save found — Day ' + sv.s.day + ' · ' + when;
+    cont.onclick = function(){
+      SFX.init(); SFX.resume(); SFX.ui();
+      ss.style.display = 'none';
+      hideHud();
+      GameScene.continueData = sv;
+      bootGame();
+    };
+  } else {
+    cont.style.display = 'none';
+    document.getElementById('save-line').textContent = '';
+  }
+}
+
+function hideHud(){
+  ['hud','mm','weapon','inv','msg','hint'].forEach(function(id){
+    document.getElementById(id).style.display = 'none';
+    if (id === 'msg') document.getElementById(id).style.opacity = '0';
+  });
+}
+
+function bootGame(){
+  if (game){ game.destroy(true); game = null; }
+  game = new Phaser.Game({
     type: Phaser.AUTO,
-    parent:'game-container',
+    parent: 'game-container',
     width: window.innerWidth,
     height: window.innerHeight,
-    physics:{default:'arcade', arcade:{gravity:{y:0},debug:false}},
-    scale:{mode:Phaser.Scale.RESIZE,autoCenter:Phaser.Scale.CENTER_BOTH},
-    scene:Scene,
-    backgroundColor:'#e8e2d4',
-    banner:false
-  };
+    physics: { default:'arcade', arcade:{ gravity:{y:0}, debug:false } },
+    scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH },
+    scene: GameScene,
+    backgroundColor: '#e8e2d4',
+    banner: false
+  });
+}
 
-  document.getElementById('start-btn').addEventListener('click',()=>{
-    document.getElementById('start-screen').style.display='none';
-    document.getElementById('err').style.display='none';
-    if (game){ game.destroy(true); game=null; }
-    console.log('[GRISPEN] Booting Phaser...');
-    game = new Phaser.Game(cfg);
-  });
-  document.getElementById('restart-btn').addEventListener('click',()=>{
-    document.getElementById('go').style.display='none';
-    document.getElementById('err').style.display='none';
-    if (game){
-      game.scene.stop('S');
-      game.scene.start('S');
-      game.scene.resume('S');
-    }
-  });
-  window.addEventListener('keydown',e=>{
-    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
-  });
-  window.addEventListener('contextmenu',e=>e.preventDefault());
+document.getElementById('start-btn').addEventListener('click', function(){
+  SFX.init(); SFX.resume(); SFX.ui();
+  Store.clearSave();
+  document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('err').style.display = 'none';
+  hideHud();
+  document.getElementById('go').style.display = 'none';
+  GameScene.continueData = null;
+  bootGame();
+});
+
+function restartRun(){
+  document.getElementById('go').style.display = 'none';
+  document.getElementById('pauseov').style.display = 'none';
+  document.getElementById('err').style.display = 'none';
+  GameScene.continueData = null;
+  if (game){ game.scene.stop('Game'); game.scene.start('Game'); }
+}
+
+document.getElementById('restart-btn').addEventListener('click', function(){ SFX.ui(); restartRun(); });
+document.getElementById('resume-btn').addEventListener('click', function(){
+  if (game) { game.scene.resume('Game'); document.getElementById('pauseov').style.display='none';
+    var sc = game.scene.getScene('Game'); if (sc && sc.s) sc.s.paused = false; }
+});
+document.getElementById('p-restart').addEventListener('click', function(){ SFX.ui(); restartRun(); });
+
+function quitToTitle(){
+  document.getElementById('pauseov').style.display = 'none';
+  document.getElementById('go').style.display = 'none';
+  hideHud();
+  if (game){ game.destroy(true); game = null; }
+  showStartScreen();
+}
+document.getElementById('quit-btn').addEventListener('click', quitToTitle);
+document.getElementById('p-quit').addEventListener('click', function(){ SFX.ui(); quitToTitle(); });
+
+// pause the scene when the tab loses focus
+window.addEventListener('blur', function(){
+  if (game){
+    var sc = game.scene.getScene('Game');
+    if (sc && sc.s && sc.s.alive && !sc.s.paused) sc.pauseGame();
+  }
+});
+document.addEventListener('visibilitychange', function(){
+  if (document.hidden && game){
+    var sc = game.scene.getScene('Game');
+    if (sc && sc.s && sc.s.alive && !sc.s.paused) sc.pauseGame();
+  }
+});
+
+// key handling: prevent scroll on arrows/space, allow P/M anywhere
+window.addEventListener('keydown', function(e){
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].indexOf(e.key) > -1) e.preventDefault();
+});
+window.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+
+showStartScreen();
 })();
 </script>
 </body>
